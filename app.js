@@ -8,7 +8,6 @@ const resultsCardEl = document.querySelector('.results-card');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
-const scrollSentinelEl = document.getElementById('scroll-sentinel');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
 const modalCloseEl = document.getElementById('modal-close');
@@ -23,23 +22,9 @@ const modalOptionsEl = document.getElementById('modal-options');
 const state = {
   keyword: '',
   items: [],
-  nextCursor: null,
-  loadingMore: false,
 };
 
-const observer =
-  'IntersectionObserver' in window
-    ? new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              loadNextPage();
-            }
-          });
-        },
-        { rootMargin: '320px 0px' }
-      )
-    : null;
+const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
 
 function escapeHtml(value) {
   return String(value)
@@ -147,30 +132,24 @@ function getQuantityColumnEnabled(items) {
   return items.some((item) => (item.item_count ?? 1) > 1);
 }
 
-function updateLayoutMode() {
-  resultsCardEl.classList.toggle('qty-off', !getQuantityColumnEnabled(state.items));
-}
+function matchesDefaultExclusions(item, keyword) {
+  const query = String(keyword || '').trim();
+  const allowExcludedTerms = DEFAULT_EXCLUSIONS.some((term) => query.includes(term));
+  if (allowExcludedTerms) return true;
 
-function updateAutoLoadUi() {
-  if (!state.nextCursor) {
-    scrollSentinelEl.classList.add('hidden');
-    scrollSentinelEl.textContent = '';
-    return;
-  }
-
-  scrollSentinelEl.classList.remove('hidden');
-  scrollSentinelEl.textContent = state.loadingMore ? '다음 페이지를 불러오는 중…' : '아래로 스크롤하면 다음 페이지를 자동으로 불러옵니다.';
+  const name = `${item.item_display_name || ''} ${item.item_name || ''}`;
+  return !DEFAULT_EXCLUSIONS.some((term) => name.includes(term));
 }
 
 function setEmpty(message) {
   resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
   resultCountEl.textContent = '0건';
-  updateLayoutMode();
-  updateAutoLoadUi();
+  resultsCardEl.classList.remove('qty-off');
 }
 
 function renderResults() {
-  const items = getSortedItems(state.items);
+  const filteredItems = state.items.filter((item) => matchesDefaultExclusions(item, state.keyword));
+  const items = getSortedItems(filteredItems);
   const showQuantity = getQuantityColumnEnabled(items);
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   resultCountEl.textContent = `${items.length}건`;
@@ -185,9 +164,9 @@ function renderResults() {
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
       const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
       const detailAvailable = hasDetail(item);
-      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '';
       const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty muted">-</span>' : '';
       const titleSubtitle = itemRawName ? `<span class="result-subtitle">${escapeHtml(itemRawName)}</span>` : '';
+      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '';
       const row = `
         <span class="result-title-wrap">
           <span class="result-title">${escapeHtml(itemName)}</span>
@@ -221,9 +200,6 @@ function renderResults() {
       `;
     })
     .join('');
-
-  updateLayoutMode();
-  updateAutoLoadUi();
 }
 
 function openModal(item) {
@@ -305,6 +281,22 @@ async function searchAuction(keyword, cursor = null) {
   };
 }
 
+async function fetchAllAuctionItems(keyword) {
+  const allItems = [];
+  let cursor = null;
+
+  do {
+    const result = await searchAuction(keyword, cursor);
+    allItems.push(...result.items);
+    cursor = result.nextCursor;
+    statusEl.textContent = cursor
+      ? `"${keyword}" 검색 결과를 수집 중입니다… ${allItems.length}건`
+      : `"${keyword}" 검색 결과를 모두 불러왔습니다. ${allItems.length}건`;
+  } while (cursor);
+
+  return allItems;
+}
+
 function syncKeywordToUrl(keyword) {
   const url = new URL(window.location.href);
   if (keyword) {
@@ -315,47 +307,25 @@ function syncKeywordToUrl(keyword) {
   window.history.replaceState({}, '', url);
 }
 
-async function loadNextPage() {
-  if (!state.keyword || !state.nextCursor || state.loadingMore) return;
-  state.loadingMore = true;
-  updateAutoLoadUi();
-
-  try {
-    const result = await searchAuction(state.keyword, state.nextCursor);
-    state.items = state.items.concat(result.items);
-    state.nextCursor = result.nextCursor;
-    statusEl.textContent = `"${state.keyword}" 검색 결과 ${state.items.length}건을 불러왔습니다.`;
-    renderResults();
-  } catch (error) {
-    statusEl.textContent = `자동 불러오기 실패: ${error.message}`;
-  } finally {
-    state.loadingMore = false;
-    updateAutoLoadUi();
-  }
-}
-
 async function runSearch(keyword, pushToUrl = true) {
   state.keyword = keyword;
   state.items = [];
-  state.nextCursor = null;
-  state.loadingMore = false;
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
   closeModal();
   if (pushToUrl) syncKeywordToUrl(keyword);
 
   try {
-    const result = await searchAuction(keyword);
-    if (!result.items.length) {
+    const items = await fetchAllAuctionItems(keyword);
+    if (!items.length) {
       statusEl.textContent = '검색 결과가 없습니다.';
       setEmpty('검색 결과가 없습니다.');
       return;
     }
 
-    state.items = result.items;
-    state.nextCursor = result.nextCursor;
-    statusEl.textContent = `"${keyword}" 검색 결과입니다. ${state.nextCursor ? '아래로 스크롤하면 다음 페이지를 자동으로 불러옵니다.' : ''}`.trim();
+    state.items = items;
     renderResults();
+    statusEl.textContent = `"${keyword}" 검색 결과입니다.`;
   } catch (error) {
     statusEl.textContent = `오류: ${error.message}`;
     setEmpty('검색 결과를 불러오지 못했습니다.');
@@ -383,7 +353,7 @@ resultsEl.addEventListener('click', (event) => {
   const button = event.target.closest('.result-button');
   if (!button) return;
   const index = Number(button.dataset.index);
-  const item = getSortedItems(state.items)[index];
+  const item = getSortedItems(state.items.filter((entry) => matchesDefaultExclusions(entry, state.keyword)))[index];
   if (!item || !hasDetail(item)) return;
   openModal(item);
 });
@@ -395,10 +365,6 @@ document.addEventListener('keydown', (event) => {
     closeModal();
   }
 });
-
-if (observer) {
-  observer.observe(scrollSentinelEl);
-}
 
 const initialKeyword = new URL(window.location.href).searchParams.get('keyword');
 if (initialKeyword) {

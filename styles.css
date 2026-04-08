@@ -324,18 +324,6 @@ button {
   pointer-events: none;
 }
 
-.scroll-sentinel {
-  margin-top: 14px;
-  min-height: 44px;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.scroll-sentinel.hidden {
-  display: none;
-}
 
 .footer {
   margin-top: 16px;
