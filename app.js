@@ -6,6 +6,27 @@ const keywordInput = document.getElementById('keyword');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
+const modalEl = document.getElementById('item-modal');
+const modalBackdropEl = document.getElementById('modal-backdrop');
+const modalCloseEl = document.getElementById('modal-close');
+const modalCategoryEl = document.getElementById('modal-category');
+const modalTitleEl = document.getElementById('modal-title');
+const modalPriceEl = document.getElementById('modal-price');
+const modalCountEl = document.getElementById('modal-count');
+const modalExpireEl = document.getElementById('modal-expire');
+const modalColorsEl = document.getElementById('modal-colors');
+const modalOptionsEl = document.getElementById('modal-options');
+
+let currentItems = [];
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 function formatPrice(value) {
   return new Intl.NumberFormat('ko-KR').format(value) + ' 골드';
@@ -24,32 +45,135 @@ function formatExpire(value) {
 }
 
 function setEmpty(message) {
-  resultsEl.innerHTML = `<li class="empty">${message}</li>`;
+  resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
   resultCountEl.textContent = '0건';
 }
 
+function splitOptions(options = []) {
+  const colorOptions = [];
+  const otherOptions = [];
+
+  options.forEach((option) => {
+    if (option?.option_type === '아이템 색상') {
+      colorOptions.push(option);
+    } else {
+      otherOptions.push(option);
+    }
+  });
+
+  return { colorOptions, otherOptions };
+}
+
+function formatOption(option) {
+  const parts = [option.option_type];
+  if (option.option_sub_type) parts.push(option.option_sub_type);
+  const label = parts.join(' ');
+  const values = [option.option_value, option.option_value2].filter(Boolean).join(' / ');
+  const desc = option.option_desc ? ` (${option.option_desc})` : '';
+  return values ? `${label}: ${values}${desc}` : `${label}${desc}`;
+}
+
+function parseRgb(value) {
+  const parts = String(value || '')
+    .split(',')
+    .map((part) => Number(part.trim()));
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+  return parts.map((part) => Math.max(0, Math.min(255, part)));
+}
+
 function renderResults(items) {
+  currentItems = items;
   resultCountEl.textContent = `${items.length}건`;
   resultsEl.innerHTML = items
-    .map((item) => {
+    .map((item, index) => {
       const itemName = item.item_display_name || item.item_name || '이름 없음';
       const category = item.auction_item_category || '분류 없음';
       const count = item.item_count ?? 0;
       const price = item.auction_price_per_unit ?? 0;
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
+      const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
+      const colorSummary = colorOptions.length ? `색상 ${colorOptions.length}` : '색상 없음';
+      const optionSummary = otherOptions.length ? `옵션 ${otherOptions.length}` : '옵션 없음';
+
       return `
-        <li class="result-item">
-          <p class="result-title">${itemName}</p>
-          <div class="result-meta">
-            <span>분류: ${category}</span>
-            <span>수량: ${count}</span>
-            <span>개당 가격: ${formatPrice(price)}</span>
-            <span>만료: ${expire}</span>
-          </div>
+        <li>
+          <button class="result-button" type="button" data-index="${index}">
+            <div class="result-item">
+              <div class="result-top">
+                <p class="result-title">${escapeHtml(itemName)}</p>
+                <span class="result-price">${escapeHtml(formatPrice(price))}</span>
+              </div>
+              <div class="result-meta">
+                <span>분류: ${escapeHtml(category)}</span>
+                <span>수량: ${escapeHtml(count)}</span>
+                <span>만료: ${escapeHtml(expire)}</span>
+                <span>${escapeHtml(colorSummary)}</span>
+                <span>${escapeHtml(optionSummary)}</span>
+              </div>
+            </div>
+          </button>
         </li>
       `;
     })
     .join('');
+}
+
+function openModal(item) {
+  const itemName = item.item_display_name || item.item_name || '이름 없음';
+  const category = item.auction_item_category || '분류 없음';
+  const count = item.item_count ?? 0;
+  const price = item.auction_price_per_unit ?? 0;
+  const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
+  const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
+
+  modalCategoryEl.textContent = category;
+  modalTitleEl.textContent = itemName;
+  modalPriceEl.textContent = `개당 가격 ${formatPrice(price)}`;
+  modalCountEl.textContent = `수량 ${count}`;
+  modalExpireEl.textContent = `만료 ${expire}`;
+
+  if (colorOptions.length) {
+    modalColorsEl.classList.remove('empty-state');
+    modalColorsEl.innerHTML = colorOptions
+      .map((option) => {
+        const rgb = parseRgb(option.option_value);
+        const swatchStyle = rgb ? `style="background: rgb(${rgb.join(',')});"` : '';
+        const swatchText = option.option_value || '-';
+        return `
+          <div class="color-chip">
+            <span class="color-swatch" ${swatchStyle}></span>
+            <div class="color-copy">
+              <strong>${escapeHtml(option.option_sub_type || option.option_type)}</strong>
+              <span>${escapeHtml(swatchText)}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  } else {
+    modalColorsEl.classList.add('empty-state');
+    modalColorsEl.textContent = '색상 정보가 없습니다.';
+  }
+
+  if (otherOptions.length) {
+    modalOptionsEl.innerHTML = otherOptions
+      .map((option) => `<li class="option-item">${escapeHtml(formatOption(option))}</li>`)
+      .join('');
+  } else {
+    modalOptionsEl.innerHTML = '<li class="empty-state">옵션 정보가 없습니다.</li>';
+  }
+
+  modalEl.classList.remove('hidden');
+  modalEl.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function closeModal() {
+  modalEl.classList.add('hidden');
+  modalEl.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
 }
 
 async function searchAuction(keyword) {
@@ -81,6 +205,7 @@ form.addEventListener('submit', async (event) => {
 
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
+  closeModal();
 
   try {
     const items = await searchAuction(keyword);
@@ -89,11 +214,28 @@ form.addEventListener('submit', async (event) => {
       setEmpty('검색 결과가 없습니다.');
       return;
     }
-    statusEl.textContent = `"${keyword}" 검색 결과입니다.`;
+    statusEl.textContent = `"${keyword}" 검색 결과입니다. 항목을 누르면 상세 정보를 볼 수 있습니다.`;
     renderResults(items);
   } catch (error) {
     statusEl.textContent = `오류: ${error.message}`;
     setEmpty('검색 결과를 불러오지 못했습니다.');
+  }
+});
+
+resultsEl.addEventListener('click', (event) => {
+  const button = event.target.closest('.result-button');
+  if (!button) return;
+  const index = Number(button.dataset.index);
+  const item = currentItems[index];
+  if (!item) return;
+  openModal(item);
+});
+
+modalCloseEl.addEventListener('click', closeModal);
+modalBackdropEl.addEventListener('click', closeModal);
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !modalEl.classList.contains('hidden')) {
+    closeModal();
   }
 });
 

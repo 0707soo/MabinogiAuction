@@ -39,6 +39,34 @@
       </footer>
     </main>
 
+    <div id="item-modal" class="modal hidden" aria-hidden="true">
+      <div id="modal-backdrop" class="modal-backdrop"></div>
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-head">
+          <div>
+            <p id="modal-category" class="modal-category">-</p>
+            <h3 id="modal-title" class="modal-title">-</h3>
+          </div>
+          <button id="modal-close" class="modal-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="modal-summary">
+          <span id="modal-price">-</span>
+          <span id="modal-count">-</span>
+          <span id="modal-expire">-</span>
+        </div>
+        <section class="modal-section">
+          <h4>색상</h4>
+          <div id="modal-colors" class="color-list empty-state">색상 정보가 없습니다.</div>
+        </section>
+        <section class="modal-section">
+          <h4>능력치 및 옵션</h4>
+          <ul id="modal-options" class="option-list">
+            <li class="empty-state">옵션 정보가 없습니다.</li>
+          </ul>
+        </section>
+      </section>
+    </div>
+
     <script src="./app.js"></script>
   </body>
 </html>
