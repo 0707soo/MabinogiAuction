@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MabinogiAuction</title>
+    <meta name="description" content="마비노기 경매장 키워드 검색기" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">MabinogiAuction</p>
+        <h1>경매장 키워드 검색</h1>
+        <p class="lead">
+          띄어쓰기가 조금 어긋나도 검색이 되도록, 넥슨 Open API의 경매장 매물 키워드 검색을
+          그대로 사용합니다.
+        </p>
+      </header>
+
+      <section class="search-card">
+        <form id="search-form" class="search-form">
+          <label class="search-label" for="keyword">검색어</label>
+          <div class="search-row">
+            <input id="keyword" name="keyword" type="text" placeholder="예: 롱소드" autocomplete="off" />
+            <button type="submit">검색</button>
+          </div>
+        </form>
+        <p id="status" class="status">검색어를 입력해 주세요.</p>
+      </section>
+
+      <section class="results-card">
+        <div class="results-head">
+          <h2>검색 결과</h2>
+          <span id="result-count" class="result-count">0건</span>
+        </div>
+        <ul id="results" class="results"></ul>
+      </section>
+
+      <footer class="footer">
+        <p>Data based on NEXON Open API</p>
+      </footer>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
