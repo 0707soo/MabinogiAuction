@@ -485,35 +485,36 @@ button {
   }
 
   .result-row {
-    grid-template-columns: 1fr auto;
-    gap: 8px 12px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
   }
 
   .result-title-wrap,
   .category-cell,
   .qty-cell,
-  .expire-cell {
-    grid-column: 1 / -1;
-  }
-
+  .expire-cell,
   .price-cell {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: start;
-  }
-
-  .result-cell {
-    white-space: normal;
+    width: 100%;
   }
 
   .result-price {
-    white-space: normal;
     text-align: right;
   }
 
+  .result-cell,
+  .result-price,
   .result-title {
     white-space: normal;
+  }
+
+  .result-title {
+    display: block;
+  }
+
+  .price-cell {
+    align-self: flex-end;
   }
 }
 
