@@ -35,12 +35,41 @@ function formatPrice(value) {
 function formatExpire(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(navigator.language || 'ko-KR', {
+
+  const diffMs = date.getTime() - Date.now();
+  const diffMinutes = Math.round(diffMs / 60000);
+
+  if (diffMinutes >= 0) {
+    if (diffMinutes < 60) return `만료까지 ${diffMinutes}분`;
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    if (hours < 24) return `만료까지 ${hours}시간 ${minutes}분`;
+    const days = Math.floor(hours / 24);
+    const remainHours = hours % 24;
+    return `만료까지 ${days}일 ${remainHours}시간`;
+  }
+
+  const passedMinutes = Math.abs(diffMinutes);
+  if (passedMinutes < 60) return `${passedMinutes}분 전 만료`;
+  const passedHours = Math.floor(passedMinutes / 60);
+  const remainMinutes = passedMinutes % 60;
+  if (passedHours < 24) return `${passedHours}시간 ${remainMinutes}분 전 만료`;
+  const passedDays = Math.floor(passedHours / 24);
+  const remainHours = passedHours % 24;
+  return `${passedDays}일 ${remainHours}시간 전 만료`;
+}
+
+function formatAbsoluteKST(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   }).format(date);
 }
 
@@ -83,6 +112,11 @@ function parseRgb(value) {
   return parts.map((part) => Math.max(0, Math.min(255, part)));
 }
 
+function hasDetail(item) {
+  const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
+  return colorOptions.length > 0 || otherOptions.length > 0;
+}
+
 function renderResults(items) {
   currentItems = items;
   resultCountEl.textContent = `${items.length}건`;
@@ -93,9 +127,31 @@ function renderResults(items) {
       const count = item.item_count ?? 0;
       const price = item.auction_price_per_unit ?? 0;
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
+      const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
       const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
       const colorSummary = colorOptions.length ? `색상 ${colorOptions.length}` : '색상 없음';
       const optionSummary = otherOptions.length ? `옵션 ${otherOptions.length}` : '옵션 없음';
+      const detailAvailable = colorOptions.length > 0 || otherOptions.length > 0;
+
+      if (!detailAvailable) {
+        return `
+          <li>
+            <div class="result-item result-item-static">
+              <div class="result-top">
+                <p class="result-title">${escapeHtml(itemName)}</p>
+                <span class="result-price">${escapeHtml(formatPrice(price))}</span>
+              </div>
+              <div class="result-meta">
+                <span>분류: ${escapeHtml(category)}</span>
+                <span>수량: ${escapeHtml(count)}</span>
+                <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
+                <span>${escapeHtml(colorSummary)}</span>
+                <span>${escapeHtml(optionSummary)}</span>
+              </div>
+            </div>
+          </li>
+        `;
+      }
 
       return `
         <li>
@@ -108,7 +164,7 @@ function renderResults(items) {
               <div class="result-meta">
                 <span>분류: ${escapeHtml(category)}</span>
                 <span>수량: ${escapeHtml(count)}</span>
-                <span>만료: ${escapeHtml(expire)}</span>
+                <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
                 <span>${escapeHtml(colorSummary)}</span>
                 <span>${escapeHtml(optionSummary)}</span>
               </div>
@@ -126,13 +182,14 @@ function openModal(item) {
   const count = item.item_count ?? 0;
   const price = item.auction_price_per_unit ?? 0;
   const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
+  const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
   const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
 
   modalCategoryEl.textContent = category;
   modalTitleEl.textContent = itemName;
   modalPriceEl.textContent = `개당 가격 ${formatPrice(price)}`;
   modalCountEl.textContent = `수량 ${count}`;
-  modalExpireEl.textContent = `만료 ${expire}`;
+  modalExpireEl.textContent = `만료 ${expire} · ${expireAbsolute} KST`;
 
   if (colorOptions.length) {
     modalColorsEl.classList.remove('empty-state');
@@ -227,7 +284,7 @@ resultsEl.addEventListener('click', (event) => {
   if (!button) return;
   const index = Number(button.dataset.index);
   const item = currentItems[index];
-  if (!item) return;
+  if (!item || !hasDetail(item)) return;
   openModal(item);
 });
 
