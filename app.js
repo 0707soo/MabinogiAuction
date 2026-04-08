@@ -164,7 +164,7 @@ function renderResults() {
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
       const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
       const detailAvailable = hasDetail(item);
-      const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty muted">-</span>' : '';
+      const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty-cell">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty-cell muted">-</span>' : '';
       const titleSubtitle = itemRawName ? `<span class="result-subtitle">${escapeHtml(itemRawName)}</span>` : '';
       const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '';
       const row = `
@@ -173,10 +173,10 @@ function renderResults() {
           ${titleSubtitle}
           ${detailBadge}
         </span>
-        <span class="result-cell">${escapeHtml(category)}</span>
+        <span class="result-cell category-cell">${escapeHtml(category)}</span>
         ${quantityCell}
-        <span class="result-cell" title="${escapeHtml(expireAbsolute)} KST">${escapeHtml(expire)}</span>
-        <span class="result-price">${escapeHtml(formatPrice(price))}</span>
+        <span class="result-cell expire-cell" title="${escapeHtml(expireAbsolute)} KST">${escapeHtml(expire)}</span>
+        <span class="result-price price-cell">${escapeHtml(formatPrice(price))}</span>
       `;
 
       if (!detailAvailable) {

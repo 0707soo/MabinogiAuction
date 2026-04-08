@@ -485,8 +485,22 @@ button {
   }
 
   .result-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    align-items: start;
+  }
+
+  .result-title-wrap,
+  .category-cell,
+  .qty-cell,
+  .expire-cell {
+    grid-column: 1 / -1;
+  }
+
+  .price-cell {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
   }
 
   .result-cell {
@@ -495,16 +509,33 @@ button {
 
   .result-price {
     white-space: normal;
+    text-align: right;
+  }
+
+  .result-title {
+    white-space: normal;
   }
 }
 
 @media (max-width: 640px) {
-  .shell { width: min(980px, calc(100vw - 20px)); padding-top: 28px; }
+  .shell { width: min(980px, calc(100vw - 20px)); padding-top: 20px; }
+  .search-card,
+  .results-card,
+  .modal-panel {
+    border-radius: 18px;
+  }
+  .search-card,
+  .results-card { padding: 16px; }
   .search-row { flex-direction: column; }
   button { width: 100%; }
   .results-head { align-items: flex-start; flex-direction: column; }
   .results-tools { width: 100%; }
   .sort-select { width: 100%; }
-  .modal { padding: 12px; }
-  .modal-panel { padding: 18px; }
+  .result-item { padding: 10px 12px; }
+  .result-title { font-size: 0.94rem; }
+  .result-cell,
+  .result-price,
+  .result-subtitle { font-size: 0.82rem; }
+  .modal { padding: 10px; }
+  .modal-panel { padding: 16px; max-height: 92vh; }
 }
