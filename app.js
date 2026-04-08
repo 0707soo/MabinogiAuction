@@ -4,10 +4,11 @@ const API_KEY = 'live_f5410ee0ae6feccbb5afdbc8e103b29648248b8e25600696d7c30c1e74
 const form = document.getElementById('search-form');
 const keywordInput = document.getElementById('keyword');
 const statusEl = document.getElementById('status');
+const resultsCardEl = document.querySelector('.results-card');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
-const loadMoreEl = document.getElementById('load-more');
+const scrollSentinelEl = document.getElementById('scroll-sentinel');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
 const modalCloseEl = document.getElementById('modal-close');
@@ -25,6 +26,20 @@ const state = {
   nextCursor: null,
   loadingMore: false,
 };
+
+const observer =
+  'IntersectionObserver' in window
+    ? new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              loadNextPage();
+            }
+          });
+        },
+        { rootMargin: '320px 0px' }
+      )
+    : null;
 
 function escapeHtml(value) {
   return String(value)
@@ -80,12 +95,6 @@ function formatAbsoluteKST(value) {
   }).format(date);
 }
 
-function setEmpty(message) {
-  resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
-  resultCountEl.textContent = '0건';
-  loadMoreEl.classList.add('hidden');
-}
-
 function splitOptions(options = []) {
   const colorOptions = [];
   const otherOptions = [];
@@ -134,48 +143,68 @@ function getSortedItems(items) {
   });
 }
 
-function updateLoadMore() {
-  if (state.nextCursor) {
-    loadMoreEl.classList.remove('hidden');
-    loadMoreEl.disabled = state.loadingMore;
-    loadMoreEl.textContent = state.loadingMore ? '불러오는 중…' : '더 불러오기';
-  } else {
-    loadMoreEl.classList.add('hidden');
+function getQuantityColumnEnabled(items) {
+  return items.some((item) => (item.item_count ?? 1) > 1);
+}
+
+function updateLayoutMode() {
+  resultsCardEl.classList.toggle('qty-off', !getQuantityColumnEnabled(state.items));
+}
+
+function updateAutoLoadUi() {
+  if (!state.nextCursor) {
+    scrollSentinelEl.classList.add('hidden');
+    scrollSentinelEl.textContent = '';
+    return;
   }
+
+  scrollSentinelEl.classList.remove('hidden');
+  scrollSentinelEl.textContent = state.loadingMore ? '다음 페이지를 불러오는 중…' : '아래로 스크롤하면 다음 페이지를 자동으로 불러옵니다.';
+}
+
+function setEmpty(message) {
+  resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
+  resultCountEl.textContent = '0건';
+  updateLayoutMode();
+  updateAutoLoadUi();
 }
 
 function renderResults() {
   const items = getSortedItems(state.items);
+  const showQuantity = getQuantityColumnEnabled(items);
+  resultsCardEl.classList.toggle('qty-off', !showQuantity);
   resultCountEl.textContent = `${items.length}건`;
+
   resultsEl.innerHTML = items
     .map((item, index) => {
       const itemName = item.item_display_name || item.item_name || '이름 없음';
+      const itemRawName = item.item_name && item.item_name !== itemName ? item.item_name : '';
       const category = item.auction_item_category || '분류 없음';
       const count = item.item_count ?? 0;
       const price = item.auction_price_per_unit ?? 0;
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
       const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
-      const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
-      const detailAvailable = colorOptions.length > 0 || otherOptions.length > 0;
-      const detailBadge = detailAvailable ? '<span class="detail-badge">옵션</span>' : '';
-      const quantityMeta = count > 1 ? `<span>수량: ${escapeHtml(count)}</span>` : '';
+      const detailAvailable = hasDetail(item);
+      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '';
+      const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty muted">-</span>' : '';
+      const titleSubtitle = itemRawName ? `<span class="result-subtitle">${escapeHtml(itemRawName)}</span>` : '';
+      const row = `
+        <span class="result-title-wrap">
+          <span class="result-title">${escapeHtml(itemName)}</span>
+          ${titleSubtitle}
+          ${detailBadge}
+        </span>
+        <span class="result-cell">${escapeHtml(category)}</span>
+        ${quantityCell}
+        <span class="result-cell" title="${escapeHtml(expireAbsolute)} KST">${escapeHtml(expire)}</span>
+        <span class="result-price">${escapeHtml(formatPrice(price))}</span>
+      `;
 
       if (!detailAvailable) {
         return `
           <li>
             <div class="result-item result-item-static">
-              <div class="result-top">
-                <div class="result-heading">
-                  <p class="result-title">${escapeHtml(itemName)}</p>
-                  ${detailBadge}
-                </div>
-                <span class="result-price">${escapeHtml(formatPrice(price))}</span>
-              </div>
-              <div class="result-meta">
-                <span>분류: ${escapeHtml(category)}</span>
-                ${quantityMeta}
-                <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
-              </div>
+              <div class="result-row">${row}</div>
             </div>
           </li>
         `;
@@ -185,18 +214,7 @@ function renderResults() {
         <li>
           <button class="result-button" type="button" data-index="${index}">
             <div class="result-item result-item-detail">
-              <div class="result-top">
-                <div class="result-heading">
-                  <p class="result-title">${escapeHtml(itemName)}</p>
-                  ${detailBadge}
-                </div>
-                <span class="result-price">${escapeHtml(formatPrice(price))}</span>
-              </div>
-              <div class="result-meta">
-                <span>분류: ${escapeHtml(category)}</span>
-                ${quantityMeta}
-                <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
-              </div>
+              <div class="result-row">${row}</div>
             </div>
           </button>
         </li>
@@ -204,7 +222,8 @@ function renderResults() {
     })
     .join('');
 
-  updateLoadMore();
+  updateLayoutMode();
+  updateAutoLoadUi();
 }
 
 function openModal(item) {
@@ -286,15 +305,36 @@ async function searchAuction(keyword, cursor = null) {
   };
 }
 
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const keyword = keywordInput.value.trim();
-  if (!keyword) {
-    statusEl.textContent = '검색어를 입력해 주세요.';
-    setEmpty('검색 결과가 없습니다.');
-    return;
+function syncKeywordToUrl(keyword) {
+  const url = new URL(window.location.href);
+  if (keyword) {
+    url.searchParams.set('keyword', keyword);
+  } else {
+    url.searchParams.delete('keyword');
   }
+  window.history.replaceState({}, '', url);
+}
 
+async function loadNextPage() {
+  if (!state.keyword || !state.nextCursor || state.loadingMore) return;
+  state.loadingMore = true;
+  updateAutoLoadUi();
+
+  try {
+    const result = await searchAuction(state.keyword, state.nextCursor);
+    state.items = state.items.concat(result.items);
+    state.nextCursor = result.nextCursor;
+    statusEl.textContent = `"${state.keyword}" 검색 결과 ${state.items.length}건을 불러왔습니다.`;
+    renderResults();
+  } catch (error) {
+    statusEl.textContent = `자동 불러오기 실패: ${error.message}`;
+  } finally {
+    state.loadingMore = false;
+    updateAutoLoadUi();
+  }
+}
+
+async function runSearch(keyword, pushToUrl = true) {
   state.keyword = keyword;
   state.items = [];
   state.nextCursor = null;
@@ -302,6 +342,7 @@ form.addEventListener('submit', async (event) => {
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
   closeModal();
+  if (pushToUrl) syncKeywordToUrl(keyword);
 
   try {
     const result = await searchAuction(keyword);
@@ -313,37 +354,29 @@ form.addEventListener('submit', async (event) => {
 
     state.items = result.items;
     state.nextCursor = result.nextCursor;
-    statusEl.textContent = `"${keyword}" 검색 결과입니다. ${state.nextCursor ? '더 불러오기가 가능합니다.' : ''}`.trim();
+    statusEl.textContent = `"${keyword}" 검색 결과입니다. ${state.nextCursor ? '아래로 스크롤하면 다음 페이지를 자동으로 불러옵니다.' : ''}`.trim();
     renderResults();
   } catch (error) {
     statusEl.textContent = `오류: ${error.message}`;
     setEmpty('검색 결과를 불러오지 못했습니다.');
   }
+}
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const keyword = keywordInput.value.trim();
+  if (!keyword) {
+    statusEl.textContent = '검색어를 입력해 주세요.';
+    setEmpty('검색 결과가 없습니다.');
+    return;
+  }
+
+  await runSearch(keyword, true);
 });
 
 sortSelectEl.addEventListener('change', () => {
   if (!state.items.length) return;
   renderResults();
-});
-
-loadMoreEl.addEventListener('click', async () => {
-  if (!state.keyword || !state.nextCursor || state.loadingMore) return;
-  state.loadingMore = true;
-  updateLoadMore();
-
-  try {
-    const result = await searchAuction(state.keyword, state.nextCursor);
-    state.items = state.items.concat(result.items);
-    state.nextCursor = result.nextCursor;
-    statusEl.textContent = `"${state.keyword}" 검색 결과 ${state.items.length}건을 불러왔습니다.`;
-    renderResults();
-  } catch (error) {
-    statusEl.textContent = `추가 불러오기 실패: ${error.message}`;
-    updateLoadMore();
-  } finally {
-    state.loadingMore = false;
-    updateLoadMore();
-  }
 });
 
 resultsEl.addEventListener('click', (event) => {
@@ -363,4 +396,14 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-setEmpty('검색 결과가 없습니다.');
+if (observer) {
+  observer.observe(scrollSentinelEl);
+}
+
+const initialKeyword = new URL(window.location.href).searchParams.get('keyword');
+if (initialKeyword) {
+  keywordInput.value = initialKeyword;
+  runSearch(initialKeyword, false);
+} else {
+  setEmpty('검색 결과가 없습니다.');
+}

@@ -10,9 +10,12 @@
   <body>
     <main class="shell">
       <header class="hero">
-        <p class="eyebrow">MabinogiAuction</p>
-        <h1>경매장 키워드 검색</h1>
-        <p class="lead">아이템 이름을 입력하면 경매장 매물을 빠르게 조회할 수 있습니다.</p>
+        <div class="hero-topline">
+          <p class="eyebrow">MabinogiAuction</p>
+          <span class="hero-chip">LIVE</span>
+        </div>
+        <h1>경매장 검색기</h1>
+        <p class="lead">검색어로 경매장 매물을 빠르게 훑고, 가격과 만료를 바로 비교합니다.</p>
       </header>
 
       <section class="search-card">
@@ -39,10 +42,15 @@
             <span id="result-count" class="result-count">0건</span>
           </div>
         </div>
-        <ul id="results" class="results"></ul>
-        <div class="results-actions">
-          <button id="load-more" class="load-more hidden" type="button">더 불러오기</button>
+        <div class="results-table-head" aria-hidden="true">
+          <span>아이템</span>
+          <span>분류</span>
+          <span class="col-qty">수량</span>
+          <span>만료</span>
+          <span class="col-price">가격</span>
         </div>
+        <ul id="results" class="results"></ul>
+        <div id="scroll-sentinel" class="scroll-sentinel hidden" aria-hidden="true">다음 페이지를 불러오는 중…</div>
       </section>
 
       <footer class="footer">

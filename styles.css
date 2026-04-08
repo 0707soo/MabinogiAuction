@@ -54,12 +54,29 @@ body.modal-open {
   margin-bottom: 28px;
 }
 
+.hero-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .eyebrow {
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--accent);
   letter-spacing: 0.24em;
   text-transform: uppercase;
   font-size: 0.74rem;
+}
+
+.hero-chip {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
 }
 
 h1 {
@@ -83,6 +100,11 @@ h1 {
   border-radius: 24px;
   background: var(--panel);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.search-card,
+.results-card {
+  overflow: clip;
 }
 
 .search-card {
@@ -177,18 +199,39 @@ button {
   font-size: 0.92rem;
 }
 
+.results-table-head {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(110px, 0.8fr) minmax(80px, 0.5fr) minmax(150px, 0.9fr) minmax(130px, 0.9fr);
+  gap: 12px;
+  padding: 0 14px 10px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.results-card.qty-off .results-table-head,
+.results-card.qty-off .result-row {
+  grid-template-columns: minmax(0, 2.5fr) minmax(120px, 0.9fr) minmax(150px, 1fr) minmax(130px, 0.9fr);
+}
+
+.results-card.qty-off .col-qty,
+.results-card.qty-off .result-cell.qty {
+  display: none;
+}
+
 .results {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .results > li {
   content-visibility: auto;
-  contain-intrinsic-size: 120px;
+  contain-intrinsic-size: 72px;
 }
 
 .result-button {
@@ -201,9 +244,9 @@ button {
 }
 
 .result-item {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--item-bg);
   transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
 }
@@ -219,35 +262,56 @@ button {
   cursor: default;
 }
 
-.result-top {
-  display: flex;
-  justify-content: space-between;
+.result-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(110px, 0.8fr) minmax(80px, 0.5fr) minmax(150px, 0.9fr) minmax(130px, 0.9fr);
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
 }
 
-.result-heading {
+.result-title-wrap {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .result-title {
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-subtitle {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.result-cell,
+.result-price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.result-cell.muted {
+  color: var(--muted);
 }
 
 .result-price {
   color: var(--accent);
-  font-size: 0.92rem;
-  white-space: nowrap;
+  font-weight: 700;
 }
 
 .detail-badge {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
   padding: 4px 8px;
   border: 1px solid rgba(125, 211, 252, 0.28);
   border-radius: 999px;
@@ -256,27 +320,21 @@ button {
   font-weight: 600;
 }
 
-.result-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 0.88rem;
+.result-item-static .result-row {
+  pointer-events: none;
 }
 
-.results-actions {
+.scroll-sentinel {
   margin-top: 14px;
-  display: flex;
-  justify-content: center;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-.load-more.hidden {
+.scroll-sentinel.hidden {
   display: none;
-}
-
-.load-more {
-  min-width: 180px;
 }
 
 .footer {
@@ -433,6 +491,25 @@ button {
   line-height: 1.6;
 }
 
+@media (max-width: 780px) {
+  .results-table-head {
+    display: none;
+  }
+
+  .result-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .result-cell {
+    white-space: normal;
+  }
+
+  .result-price {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 640px) {
   .shell { width: min(980px, calc(100vw - 20px)); padding-top: 28px; }
   .search-row { flex-direction: column; }
@@ -440,7 +517,6 @@ button {
   .results-head { align-items: flex-start; flex-direction: column; }
   .results-tools { width: 100%; }
   .sort-select { width: 100%; }
-  .result-top { flex-direction: column; }
   .modal { padding: 12px; }
   .modal-panel { padding: 18px; }
 }
