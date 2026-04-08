@@ -6,6 +6,8 @@ const keywordInput = document.getElementById('keyword');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
+const sortSelectEl = document.getElementById('sort-select');
+const loadMoreEl = document.getElementById('load-more');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
 const modalCloseEl = document.getElementById('modal-close');
@@ -17,7 +19,12 @@ const modalExpireEl = document.getElementById('modal-expire');
 const modalColorsEl = document.getElementById('modal-colors');
 const modalOptionsEl = document.getElementById('modal-options');
 
-let currentItems = [];
+const state = {
+  keyword: '',
+  items: [],
+  nextCursor: null,
+  loadingMore: false,
+};
 
 function escapeHtml(value) {
   return String(value)
@@ -76,6 +83,7 @@ function formatAbsoluteKST(value) {
 function setEmpty(message) {
   resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
   resultCountEl.textContent = '0건';
+  loadMoreEl.classList.add('hidden');
 }
 
 function splitOptions(options = []) {
@@ -117,8 +125,27 @@ function hasDetail(item) {
   return colorOptions.length > 0 || otherOptions.length > 0;
 }
 
-function renderResults(items) {
-  currentItems = items;
+function getSortedItems(items) {
+  const mode = sortSelectEl.value;
+  return [...items].sort((a, b) => {
+    if (mode === 'priceAsc') return (a.auction_price_per_unit ?? 0) - (b.auction_price_per_unit ?? 0);
+    if (mode === 'priceDesc') return (b.auction_price_per_unit ?? 0) - (a.auction_price_per_unit ?? 0);
+    return new Date(a.date_auction_expire || 0).getTime() - new Date(b.date_auction_expire || 0).getTime();
+  });
+}
+
+function updateLoadMore() {
+  if (state.nextCursor) {
+    loadMoreEl.classList.remove('hidden');
+    loadMoreEl.disabled = state.loadingMore;
+    loadMoreEl.textContent = state.loadingMore ? '불러오는 중…' : '더 불러오기';
+  } else {
+    loadMoreEl.classList.add('hidden');
+  }
+}
+
+function renderResults() {
+  const items = getSortedItems(state.items);
   resultCountEl.textContent = `${items.length}건`;
   resultsEl.innerHTML = items
     .map((item, index) => {
@@ -132,13 +159,17 @@ function renderResults(items) {
       const colorSummary = colorOptions.length ? `색상 ${colorOptions.length}` : '색상 없음';
       const optionSummary = otherOptions.length ? `옵션 ${otherOptions.length}` : '옵션 없음';
       const detailAvailable = colorOptions.length > 0 || otherOptions.length > 0;
+      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 가능</span>' : '';
 
       if (!detailAvailable) {
         return `
           <li>
             <div class="result-item result-item-static">
               <div class="result-top">
-                <p class="result-title">${escapeHtml(itemName)}</p>
+                <div class="result-heading">
+                  <p class="result-title">${escapeHtml(itemName)}</p>
+                  ${detailBadge}
+                </div>
                 <span class="result-price">${escapeHtml(formatPrice(price))}</span>
               </div>
               <div class="result-meta">
@@ -156,9 +187,12 @@ function renderResults(items) {
       return `
         <li>
           <button class="result-button" type="button" data-index="${index}">
-            <div class="result-item">
+            <div class="result-item result-item-detail">
               <div class="result-top">
-                <p class="result-title">${escapeHtml(itemName)}</p>
+                <div class="result-heading">
+                  <p class="result-title">${escapeHtml(itemName)}</p>
+                  ${detailBadge}
+                </div>
                 <span class="result-price">${escapeHtml(formatPrice(price))}</span>
               </div>
               <div class="result-meta">
@@ -174,6 +208,8 @@ function renderResults(items) {
       `;
     })
     .join('');
+
+  updateLoadMore();
 }
 
 function openModal(item) {
@@ -233,9 +269,10 @@ function closeModal() {
   document.body.classList.remove('modal-open');
 }
 
-async function searchAuction(keyword) {
+async function searchAuction(keyword, cursor = null) {
   const url = new URL(API_URL);
   url.searchParams.set('keyword', keyword);
+  if (cursor) url.searchParams.set('cursor', cursor);
 
   const response = await fetch(url, {
     headers: {
@@ -248,7 +285,10 @@ async function searchAuction(keyword) {
     const message = data?.error?.message || '검색 요청에 실패했습니다.';
     throw new Error(message);
   }
-  return Array.isArray(data.auction_item) ? data.auction_item : [];
+  return {
+    items: Array.isArray(data.auction_item) ? data.auction_item : [],
+    nextCursor: data.next_cursor || null,
+  };
 }
 
 form.addEventListener('submit', async (event) => {
@@ -260,22 +300,54 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
+  state.keyword = keyword;
+  state.items = [];
+  state.nextCursor = null;
+  state.loadingMore = false;
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
   closeModal();
 
   try {
-    const items = await searchAuction(keyword);
-    if (!items.length) {
+    const result = await searchAuction(keyword);
+    if (!result.items.length) {
       statusEl.textContent = '검색 결과가 없습니다.';
       setEmpty('검색 결과가 없습니다.');
       return;
     }
-    statusEl.textContent = `"${keyword}" 검색 결과입니다. 항목을 누르면 상세 정보를 볼 수 있습니다.`;
-    renderResults(items);
+
+    state.items = result.items;
+    state.nextCursor = result.nextCursor;
+    statusEl.textContent = `"${keyword}" 검색 결과입니다. ${state.nextCursor ? '더 불러오기가 가능합니다.' : ''}`.trim();
+    renderResults();
   } catch (error) {
     statusEl.textContent = `오류: ${error.message}`;
     setEmpty('검색 결과를 불러오지 못했습니다.');
+  }
+});
+
+sortSelectEl.addEventListener('change', () => {
+  if (!state.items.length) return;
+  renderResults();
+});
+
+loadMoreEl.addEventListener('click', async () => {
+  if (!state.keyword || !state.nextCursor || state.loadingMore) return;
+  state.loadingMore = true;
+  updateLoadMore();
+
+  try {
+    const result = await searchAuction(state.keyword, state.nextCursor);
+    state.items = state.items.concat(result.items);
+    state.nextCursor = result.nextCursor;
+    statusEl.textContent = `"${state.keyword}" 검색 결과 ${state.items.length}건을 불러왔습니다.`;
+    renderResults();
+  } catch (error) {
+    statusEl.textContent = `추가 불러오기 실패: ${error.message}`;
+    updateLoadMore();
+  } finally {
+    state.loadingMore = false;
+    updateLoadMore();
   }
 });
 
@@ -283,7 +355,7 @@ resultsEl.addEventListener('click', (event) => {
   const button = event.target.closest('.result-button');
   if (!button) return;
   const index = Number(button.dataset.index);
-  const item = currentItems[index];
+  const item = getSortedItems(state.items)[index];
   if (!item || !hasDetail(item)) return;
   openModal(item);
 });

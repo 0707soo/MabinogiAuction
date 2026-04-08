@@ -29,9 +29,20 @@
       <section class="results-card">
         <div class="results-head">
           <h2>검색 결과</h2>
-          <span id="result-count" class="result-count">0건</span>
+          <div class="results-tools">
+            <label class="sort-label" for="sort-select">정렬</label>
+            <select id="sort-select" class="sort-select">
+              <option value="priceAsc">최저가순</option>
+              <option value="expireAsc">만료 임박순</option>
+              <option value="priceDesc">최고가순</option>
+            </select>
+            <span id="result-count" class="result-count">0건</span>
+          </div>
         </div>
         <ul id="results" class="results"></ul>
+        <div class="results-actions">
+          <button id="load-more" class="load-more hidden" type="button">더 불러오기</button>
+        </div>
       </section>
 
       <footer class="footer">
