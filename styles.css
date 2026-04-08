@@ -155,6 +155,75 @@ button {
   font-size: 0.94rem;
 }
 
+.favorites-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.favorites-head,
+.category-filter-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.favorites-label,
+.category-filter-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.favorite-add {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+}
+
+.favorite-list,
+.category-filter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.favorite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--item-bg);
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.pill.active {
+  border-color: rgba(125, 211, 252, 0.45);
+  color: var(--accent);
+}
+
+.pill-remove {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--item-bg);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .results-card {
   margin-top: 18px;
   padding: 22px;
@@ -532,6 +601,15 @@ button {
   .results-head { align-items: flex-start; flex-direction: column; }
   .results-tools { width: 100%; }
   .sort-select { width: 100%; }
+  .favorite-add { width: auto; }
+  .favorites-head,
+  .category-filter-wrap { align-items: flex-start; flex-direction: column; }
+  .favorite-list,
+  .category-filter-list { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .pill,
+  .pill-remove,
+  .favorite-open,
+  .category-chip { width: auto; white-space: nowrap; }
   .result-item { padding: 10px 12px; }
   .result-title { font-size: 0.94rem; }
   .result-cell,

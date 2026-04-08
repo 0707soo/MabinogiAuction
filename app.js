@@ -8,6 +8,9 @@ const resultsCardEl = document.querySelector('.results-card');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
+const favoriteAddEl = document.getElementById('favorite-add');
+const favoriteListEl = document.getElementById('favorite-list');
+const categoryFilterListEl = document.getElementById('category-filter-list');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
 const modalCloseEl = document.getElementById('modal-close');
@@ -22,9 +25,12 @@ const modalOptionsEl = document.getElementById('modal-options');
 const state = {
   keyword: '',
   items: [],
+  categoryFilter: 'all',
+  favorites: [],
 };
 
 const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
+const FAVORITES_STORAGE_KEY = 'mabinogi-auction:favorites';
 
 function escapeHtml(value) {
   return String(value)
@@ -119,17 +125,104 @@ function hasDetail(item) {
   return colorOptions.length > 0 || otherOptions.length > 0;
 }
 
+function loadFavorites() {
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 12) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites() {
+  try {
+    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(state.favorites.slice(0, 12)));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function addFavorite(keyword) {
+  const value = String(keyword || '').trim();
+  if (!value) return;
+  state.favorites = [value, ...state.favorites.filter((item) => item !== value)].slice(0, 12);
+  saveFavorites();
+  renderFavorites();
+}
+
+function removeFavorite(keyword) {
+  state.favorites = state.favorites.filter((item) => item !== keyword);
+  saveFavorites();
+  renderFavorites();
+}
+
+function renderFavorites() {
+  if (!favoriteListEl) return;
+  if (!state.favorites.length) {
+    favoriteListEl.innerHTML = '<span class="muted">저장된 검색어가 없습니다.</span>';
+    return;
+  }
+
+  favoriteListEl.innerHTML = state.favorites
+    .map(
+      (keyword) => `
+        <span class="favorite-chip" data-keyword="${escapeHtml(keyword)}">
+          <button class="pill favorite-open" type="button">${escapeHtml(keyword)}</button>
+          <button class="pill-remove" type="button" aria-label="${escapeHtml(keyword)} 삭제">×</button>
+        </span>
+      `
+    )
+    .join('');
+}
+
+function getAvailableCategories(items) {
+  const seen = new Set();
+  const categories = [];
+  items.forEach((item) => {
+    const category = item.auction_item_category || '분류 없음';
+    if (!seen.has(category)) {
+      seen.add(category);
+      categories.push(category);
+    }
+  });
+  return categories;
+}
+
+function renderCategoryFilters(items) {
+  if (!categoryFilterListEl) return;
+  const categories = getAvailableCategories(items);
+  const buttons = ['all', ...categories];
+  categoryFilterListEl.innerHTML = buttons
+    .map((category) => {
+      const label = category === 'all' ? '전체' : category;
+      const active = state.categoryFilter === category ? 'active' : '';
+      return `<button class="pill category-chip ${active}" type="button" data-category="${escapeHtml(category)}">${escapeHtml(label)}</button>`;
+    })
+    .join('');
+}
+
 function getSortedItems(items) {
   const mode = sortSelectEl.value;
+  if (mode === 'registered') return [...items];
   return [...items].sort((a, b) => {
     if (mode === 'priceAsc') return (a.auction_price_per_unit ?? 0) - (b.auction_price_per_unit ?? 0);
     if (mode === 'priceDesc') return (b.auction_price_per_unit ?? 0) - (a.auction_price_per_unit ?? 0);
-    return new Date(a.date_auction_expire || 0).getTime() - new Date(b.date_auction_expire || 0).getTime();
+    if (mode === 'expireAsc') return new Date(a.date_auction_expire || 0).getTime() - new Date(b.date_auction_expire || 0).getTime();
+    return 0;
   });
 }
 
 function getQuantityColumnEnabled(items) {
   return items.some((item) => (item.item_count ?? 1) > 1);
+}
+
+function getVisibleItems() {
+  const filteredByDefault = state.items.filter((item) => matchesDefaultExclusions(item, state.keyword));
+  const filteredByCategory = state.categoryFilter === 'all'
+    ? filteredByDefault
+    : filteredByDefault.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
+  return filteredByCategory;
 }
 
 function matchesDefaultExclusions(item, keyword) {
@@ -145,14 +238,16 @@ function setEmpty(message) {
   resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
   resultCountEl.textContent = '0건';
   resultsCardEl.classList.remove('qty-off');
+  renderCategoryFilters([]);
 }
 
 function renderResults() {
-  const filteredItems = state.items.filter((item) => matchesDefaultExclusions(item, state.keyword));
-  const items = getSortedItems(filteredItems);
+  const visibleItems = getVisibleItems();
+  const items = getSortedItems(visibleItems);
   const showQuantity = getQuantityColumnEnabled(items);
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   resultCountEl.textContent = `${items.length}건`;
+  renderCategoryFilters(visibleItems);
 
   resultsEl.innerHTML = items
     .map((item, index) => {
@@ -310,6 +405,7 @@ function syncKeywordToUrl(keyword) {
 async function runSearch(keyword, pushToUrl = true) {
   state.keyword = keyword;
   state.items = [];
+  state.categoryFilter = 'all';
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
   closeModal();
@@ -349,6 +445,33 @@ sortSelectEl.addEventListener('change', () => {
   renderResults();
 });
 
+favoriteAddEl.addEventListener('click', () => {
+  const keyword = keywordInput.value.trim() || state.keyword;
+  if (!keyword) return;
+  addFavorite(keyword);
+});
+
+favoriteListEl.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-keyword]');
+  if (!chip) return;
+  const keyword = chip.dataset.keyword;
+  if (event.target.closest('.pill-remove')) {
+    removeFavorite(keyword);
+    return;
+  }
+  if (event.target.closest('.favorite-open')) {
+    keywordInput.value = keyword;
+    runSearch(keyword, true);
+  }
+});
+
+categoryFilterListEl.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-category]');
+  if (!button) return;
+  state.categoryFilter = button.dataset.category;
+  renderResults();
+});
+
 resultsEl.addEventListener('click', (event) => {
   const button = event.target.closest('.result-button');
   if (!button) return;
@@ -365,6 +488,9 @@ document.addEventListener('keydown', (event) => {
     closeModal();
   }
 });
+
+state.favorites = loadFavorites();
+renderFavorites();
 
 const initialKeyword = new URL(window.location.href).searchParams.get('keyword');
 if (initialKeyword) {
