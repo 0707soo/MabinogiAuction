@@ -156,10 +156,9 @@ function renderResults() {
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
       const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
       const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
-      const colorSummary = colorOptions.length ? `색상 ${colorOptions.length}` : '색상 없음';
-      const optionSummary = otherOptions.length ? `옵션 ${otherOptions.length}` : '옵션 없음';
       const detailAvailable = colorOptions.length > 0 || otherOptions.length > 0;
-      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 가능</span>' : '';
+      const detailBadge = detailAvailable ? '<span class="detail-badge">옵션</span>' : '';
+      const quantityMeta = count > 1 ? `<span>수량: ${escapeHtml(count)}</span>` : '';
 
       if (!detailAvailable) {
         return `
@@ -174,10 +173,8 @@ function renderResults() {
               </div>
               <div class="result-meta">
                 <span>분류: ${escapeHtml(category)}</span>
-                <span>수량: ${escapeHtml(count)}</span>
+                ${quantityMeta}
                 <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
-                <span>${escapeHtml(colorSummary)}</span>
-                <span>${escapeHtml(optionSummary)}</span>
               </div>
             </div>
           </li>
@@ -197,10 +194,8 @@ function renderResults() {
               </div>
               <div class="result-meta">
                 <span>분류: ${escapeHtml(category)}</span>
-                <span>수량: ${escapeHtml(count)}</span>
+                ${quantityMeta}
                 <span title="${escapeHtml(expireAbsolute)} KST">만료: ${escapeHtml(expire)}</span>
-                <span>${escapeHtml(colorSummary)}</span>
-                <span>${escapeHtml(optionSummary)}</span>
               </div>
             </div>
           </button>
@@ -224,7 +219,7 @@ function openModal(item) {
   modalCategoryEl.textContent = category;
   modalTitleEl.textContent = itemName;
   modalPriceEl.textContent = `개당 가격 ${formatPrice(price)}`;
-  modalCountEl.textContent = `수량 ${count}`;
+  modalCountEl.textContent = count > 1 ? `수량 ${count}` : '수량 1';
   modalExpireEl.textContent = `만료 ${expire} · ${expireAbsolute} KST`;
 
   if (colorOptions.length) {
