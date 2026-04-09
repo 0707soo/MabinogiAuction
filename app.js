@@ -669,6 +669,24 @@ function setEmpty(message) {
   resultsCardEl.dataset.filtered = '0';
 }
 
+function renderZeroResults(message, showOptionReset = false) {
+  const action = showOptionReset
+    ? `<button id="empty-option-reset" class="filter-reset empty-option-reset" type="button">옵션 초기화</button>`
+    : '';
+  resultsEl.innerHTML = `
+    <li class="empty empty-with-action">
+      <div class="empty-copy">${escapeHtml(message)}</div>
+      ${action}
+    </li>
+  `;
+  if (showOptionReset) {
+    const button = document.getElementById('empty-option-reset');
+    if (button) {
+      button.addEventListener('click', resetOptionFilters);
+    }
+  }
+}
+
 function renderInspector(item) {
   if (!inspectorTitleEl || !inspectorSummaryEl || !inspectorColorsEl || !inspectorOptionsEl) return;
 
@@ -751,6 +769,22 @@ function renderResults() {
   resultsCardEl.dataset.filtered = String(items.length);
   renderOptionFieldList(getItemsBeforeOptionFilter());
   renderCategoryFilters(visibleItems);
+
+  const optionFiltersActive = state.optionField !== 'all' || state.optionMin !== '' || state.optionMax !== '';
+  const itemsBeforeOptionFilter = getItemsBeforeOptionFilter();
+
+  if (!items.length) {
+    renderInspector(null);
+    resultsCardEl.classList.remove('qty-off');
+    if (optionFiltersActive && itemsBeforeOptionFilter.length) {
+      renderZeroResults('옵션 조건에 맞는 결과가 없습니다.', true);
+    } else {
+      renderZeroResults('검색 결과가 없습니다.', false);
+    }
+    resultsCardEl.dataset.filtered = '0';
+    syncStateToUrl();
+    return;
+  }
 
   resultsEl.innerHTML = items
     .map((item, index) => {
