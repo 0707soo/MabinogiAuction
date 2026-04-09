@@ -186,12 +186,26 @@ button {
   font-size: 0.8rem;
 }
 
+.filter-reset {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--item-bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
 .favorite-list,
 .category-filter-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.saved-filters-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .recent-panel {
@@ -303,6 +317,17 @@ button {
 .result-count {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.result-count strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.result-summary {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .results-table-head {

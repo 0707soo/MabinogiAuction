@@ -12,9 +12,12 @@ const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
 const optionTypeEl = document.getElementById('option-type');
 const optionValueEl = document.getElementById('option-value');
+const filterResetEl = document.getElementById('filter-reset');
+const filterSaveEl = document.getElementById('filter-save');
 const favoriteAddEl = document.getElementById('favorite-add');
 const favoriteListEl = document.getElementById('favorite-list');
 const recentListEl = document.getElementById('recent-list');
+const savedFilterListEl = document.getElementById('saved-filter-list');
 const categoryFilterListEl = document.getElementById('category-filter-list');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
@@ -37,11 +40,13 @@ const state = {
   optionValueQuery: '',
   favorites: [],
   recentSearches: [],
+  savedFilters: [],
 };
 
 const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
 const FAVORITES_STORAGE_KEY = 'mabinogi-auction:favorites';
 const RECENTS_STORAGE_KEY = 'mabinogi-auction:recent-searches';
+const SAVED_FILTERS_STORAGE_KEY = 'mabinogi-auction:saved-filters';
 const SORT_STORAGE_KEY = 'mabinogi-auction:sort';
 
 function escapeHtml(value) {
@@ -198,6 +203,24 @@ function saveRecentSearches() {
   }
 }
 
+function loadSavedFilters() {
+  try {
+    const raw = window.localStorage.getItem(SAVED_FILTERS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSavedFilters() {
+  try {
+    window.localStorage.setItem(SAVED_FILTERS_STORAGE_KEY, JSON.stringify(state.savedFilters.slice(0, 8)));
+  } catch {
+    // ignore storage failures
+  }
+}
+
 function addFavorite(keyword) {
   const value = String(keyword || '').trim();
   if (!value) return;
@@ -218,6 +241,54 @@ function addRecentSearch(keyword) {
   state.recentSearches = [value, ...state.recentSearches.filter((item) => item !== value)].slice(0, 8);
   saveRecentSearches();
   renderRecentSearches();
+}
+
+function makeFilterSnapshot() {
+  return {
+    keyword: state.keyword.trim(),
+    sort: sortSelectEl.value,
+    category: state.categoryFilter,
+    priceMin: state.priceMin,
+    priceMax: state.priceMax,
+    optionTypeQuery: state.optionTypeQuery.trim(),
+    optionValueQuery: state.optionValueQuery.trim(),
+  };
+}
+
+function snapshotLabel(snapshot) {
+  const parts = [];
+  if (snapshot.keyword) parts.push(snapshot.keyword);
+  if (snapshot.optionTypeQuery) parts.push(`옵션명:${snapshot.optionTypeQuery}`);
+  if (snapshot.optionValueQuery) parts.push(`옵션값:${snapshot.optionValueQuery}`);
+  if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
+  if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
+  if (snapshot.sort && snapshot.sort !== 'registered') parts.push(`정렬:${snapshot.sort}`);
+  return parts.length ? parts.join(' · ') : '기본 조건';
+}
+
+function addSavedFilter(snapshot = makeFilterSnapshot()) {
+  const normalized = {
+    keyword: String(snapshot.keyword || '').trim(),
+    sort: snapshot.sort || 'registered',
+    category: snapshot.category || 'all',
+    priceMin: String(snapshot.priceMin || ''),
+    priceMax: String(snapshot.priceMax || ''),
+    optionTypeQuery: String(snapshot.optionTypeQuery || '').trim(),
+    optionValueQuery: String(snapshot.optionValueQuery || '').trim(),
+  };
+  const key = JSON.stringify(normalized);
+  state.savedFilters = [
+    normalized,
+    ...state.savedFilters.filter((entry) => JSON.stringify(entry) !== key),
+  ].slice(0, 8);
+  saveSavedFilters();
+  renderSavedFilters();
+}
+
+function removeSavedFilter(index) {
+  state.savedFilters = state.savedFilters.filter((_, i) => i !== index);
+  saveSavedFilters();
+  renderSavedFilters();
 }
 
 function removeRecentSearch(keyword) {
@@ -261,6 +332,23 @@ function renderRecentSearches() {
         </span>
       `
     )
+    .join('');
+}
+
+function renderSavedFilters() {
+  if (!savedFilterListEl) return;
+  if (!state.savedFilters.length) {
+    savedFilterListEl.innerHTML = '<span class="muted">저장된 조건이 없습니다.</span>';
+    return;
+  }
+
+  savedFilterListEl.innerHTML = state.savedFilters
+    .map((snapshot, index) => `
+      <span class="favorite-chip" data-filter-index="${index}">
+        <button class="pill saved-filter-open" type="button">${escapeHtml(snapshotLabel(snapshot))}</button>
+        <button class="pill-remove" type="button" aria-label="조건 ${index + 1} 삭제">×</button>
+      </span>
+    `)
     .join('');
 }
 
@@ -416,6 +504,7 @@ function setEmpty(message) {
   resultCountEl.textContent = '0건';
   resultsCardEl.classList.remove('qty-off');
   renderCategoryFilters([]);
+  resultsCardEl.dataset.filtered = '0';
 }
 
 function renderResults() {
@@ -423,7 +512,13 @@ function renderResults() {
   const items = getSortedItems(visibleItems);
   const showQuantity = getQuantityColumnEnabled(items);
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
-  resultCountEl.textContent = `${items.length}건`;
+  const activeFilters = [
+    state.categoryFilter !== 'all' ? '분류' : '',
+    state.priceMin || state.priceMax ? '가격' : '',
+    state.optionTypeQuery || state.optionValueQuery ? '옵션' : '',
+  ].filter(Boolean);
+  resultCountEl.innerHTML = `${items.length}건${activeFilters.length ? ` · <strong>${escapeHtml(activeFilters.join('/'))}</strong>` : ''}`;
+  resultsCardEl.dataset.filtered = String(items.length);
   renderCategoryFilters(visibleItems);
 
   resultsEl.innerHTML = items
@@ -474,6 +569,20 @@ function renderResults() {
       .join('');
 
   syncStateToUrl();
+}
+
+function resetFilters() {
+  state.categoryFilter = 'all';
+  state.priceMin = '';
+  state.priceMax = '';
+  state.optionTypeQuery = '';
+  state.optionValueQuery = '';
+  sortSelectEl.value = 'registered';
+  setPriceInputsFromState();
+  if (optionTypeEl) optionTypeEl.value = '';
+  if (optionValueEl) optionValueEl.value = '';
+  syncStateToUrl();
+  if (state.items.length) renderResults();
 }
 
 function openModal(item) {
@@ -653,6 +762,14 @@ if (optionValueEl) {
   });
 }
 
+if (filterResetEl) {
+  filterResetEl.addEventListener('click', resetFilters);
+}
+
+if (filterSaveEl) {
+  filterSaveEl.addEventListener('click', () => addSavedFilter());
+}
+
 favoriteAddEl.addEventListener('click', () => {
   const keyword = keywordInput.value.trim() || state.keyword;
   if (!keyword) return;
@@ -697,6 +814,34 @@ categoryFilterListEl.addEventListener('click', (event) => {
   renderResults();
 });
 
+if (savedFilterListEl) {
+  savedFilterListEl.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-filter-index]');
+    if (!chip) return;
+    const index = Number(chip.dataset.filterIndex);
+    const snapshot = state.savedFilters[index];
+    if (!snapshot) return;
+    if (event.target.closest('.pill-remove')) {
+      removeSavedFilter(index);
+      return;
+    }
+    if (event.target.closest('.saved-filter-open')) {
+      keywordInput.value = snapshot.keyword;
+      sortSelectEl.value = snapshot.sort || 'registered';
+      state.categoryFilter = snapshot.category || 'all';
+      state.priceMin = snapshot.priceMin || '';
+      state.priceMax = snapshot.priceMax || '';
+      state.optionTypeQuery = snapshot.optionTypeQuery || '';
+      state.optionValueQuery = snapshot.optionValueQuery || '';
+      setPriceInputsFromState();
+      if (optionTypeEl) optionTypeEl.value = state.optionTypeQuery;
+      if (optionValueEl) optionValueEl.value = state.optionValueQuery;
+      if (snapshot.keyword) runSearch(snapshot.keyword, true);
+      else if (state.items.length) renderResults();
+    }
+  });
+}
+
 resultsEl.addEventListener('click', (event) => {
   const button = event.target.closest('.result-button');
   if (!button) return;
@@ -716,9 +861,11 @@ document.addEventListener('keydown', (event) => {
 
 state.favorites = loadFavorites();
 state.recentSearches = loadRecentSearches();
+state.savedFilters = loadSavedFilters();
 sortSelectEl.value = loadSortPreference();
 renderFavorites();
 renderRecentSearches();
+renderSavedFilters();
 
 const initialKeyword = applyUrlState();
 if (initialKeyword) {

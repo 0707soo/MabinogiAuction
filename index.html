@@ -61,8 +61,16 @@
               <span class="price-sep">~</span>
               <input id="price-max" class="price-input" type="number" inputmode="numeric" placeholder="최고가" />
             </div>
+            <button id="filter-reset" class="filter-reset" type="button">초기화</button>
             <span id="result-count" class="result-count">0건</span>
           </div>
+        </div>
+        <div class="saved-filters-panel">
+          <div class="favorites-head">
+            <span class="favorites-label">저장된 필터</span>
+            <button id="filter-save" class="favorite-add" type="button">현재 조건 저장</button>
+          </div>
+          <div id="saved-filter-list" class="favorite-list"></div>
         </div>
         <div class="category-filter-wrap">
           <span class="category-filter-label">분류</span>
