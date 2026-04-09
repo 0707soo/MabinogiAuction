@@ -31,6 +31,7 @@ const state = {
 
 const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
 const FAVORITES_STORAGE_KEY = 'mabinogi-auction:favorites';
+const SORT_STORAGE_KEY = 'mabinogi-auction:sort';
 
 function escapeHtml(value) {
   return String(value)
@@ -215,6 +216,23 @@ function getSortedItems(items) {
 
 function getQuantityColumnEnabled(items) {
   return items.some((item) => (item.item_count ?? 1) > 1);
+}
+
+function loadSortPreference() {
+  try {
+    const value = window.localStorage.getItem(SORT_STORAGE_KEY);
+    return value || 'registered';
+  } catch {
+    return 'registered';
+  }
+}
+
+function saveSortPreference() {
+  try {
+    window.localStorage.setItem(SORT_STORAGE_KEY, sortSelectEl.value);
+  } catch {
+    // ignore storage failures
+  }
 }
 
 function getVisibleItems() {
@@ -441,6 +459,7 @@ form.addEventListener('submit', async (event) => {
 });
 
 sortSelectEl.addEventListener('change', () => {
+  saveSortPreference();
   if (!state.items.length) return;
   renderResults();
 });
@@ -490,6 +509,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 state.favorites = loadFavorites();
+sortSelectEl.value = loadSortPreference();
 renderFavorites();
 
 const initialKeyword = new URL(window.location.href).searchParams.get('keyword');
