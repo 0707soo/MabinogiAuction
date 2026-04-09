@@ -176,6 +176,22 @@ h1 {
   padding: 8px 10px 10px;
 }
 
+.advanced-filters select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.option-range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 input {
   flex: 1;
   min-width: 0;
@@ -739,6 +755,7 @@ button {
   .sort-select { width: 100%; }
   .price-range { width: 100%; }
   .price-input { width: 100%; min-width: 0; }
+  .option-range-grid { grid-template-columns: 1fr; }
   .favorite-add { width: auto; }
   .favorites-head,
   .category-filter-wrap { align-items: flex-start; flex-direction: column; }

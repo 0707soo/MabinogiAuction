@@ -27,10 +27,23 @@
           <details class="advanced-filters">
             <summary>옵션</summary>
             <div class="advanced-filters-body">
-              <label class="search-label" for="option-type">옵션명</label>
-              <input id="option-type" name="option-type" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
-              <label class="search-label" for="option-value">옵션값</label>
-              <input id="option-value" name="option-value" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
+              <label class="search-label" for="option-field">옵션 항목</label>
+              <select id="option-field" name="option-field" disabled>
+                <option value="all">검색 후 선택</option>
+              </select>
+
+              <label class="search-label" for="option-mode">옵션값 조건</label>
+              <select id="option-mode" name="option-mode">
+                <option value="range">범위</option>
+                <option value="gte">이상</option>
+                <option value="lte">이하</option>
+              </select>
+
+              <div class="option-range-grid">
+                <input id="option-min" name="option-min" type="number" inputmode="numeric" placeholder="최소값" />
+                <input id="option-max" name="option-max" type="number" inputmode="numeric" placeholder="최대값" />
+              </div>
+
               <div class="option-actions">
                 <button id="option-reset" class="filter-reset option-reset" type="button">옵션 초기화</button>
               </div>
