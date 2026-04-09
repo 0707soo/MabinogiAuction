@@ -10,6 +10,7 @@ const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
 const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
+const optionKeywordEl = document.getElementById('option-keyword');
 const favoriteAddEl = document.getElementById('favorite-add');
 const favoriteListEl = document.getElementById('favorite-list');
 const recentListEl = document.getElementById('recent-list');
@@ -31,6 +32,7 @@ const state = {
   categoryFilter: 'all',
   priceMin: '',
   priceMax: '',
+  optionQuery: '',
   favorites: [],
   recentSearches: [],
 };
@@ -126,6 +128,25 @@ function parseRgb(value) {
     return null;
   }
   return parts.map((part) => Math.max(0, Math.min(255, part)));
+}
+
+function getOptionSearchText(item) {
+  const optionParts = (item.item_option || [])
+    .flatMap((option) => [
+      option?.option_type,
+      option?.option_sub_type,
+      option?.option_value,
+      option?.option_value2,
+      option?.option_desc,
+    ])
+    .filter(Boolean);
+  return optionParts.join(' ').toLowerCase();
+}
+
+function matchesOptionQuery(item, query) {
+  const value = String(query || '').trim().toLowerCase();
+  if (!value) return true;
+  return getOptionSearchText(item).includes(value);
 }
 
 function hasDetail(item) {
@@ -327,6 +348,9 @@ function syncStateToUrl() {
   if (state.priceMax) params.set('maxPrice', state.priceMax);
   else params.delete('maxPrice');
 
+  if (state.optionQuery) params.set('option', state.optionQuery);
+  else params.delete('option');
+
   window.history.replaceState({}, '', url);
 }
 
@@ -337,12 +361,15 @@ function applyUrlState() {
   const category = params.get('category') || 'all';
   const minPrice = parsePrice(params.get('minPrice'));
   const maxPrice = parsePrice(params.get('maxPrice'));
+  const optionQuery = params.get('option') || '';
 
   sortSelectEl.value = sort;
   state.categoryFilter = category;
   state.priceMin = minPrice;
   state.priceMax = maxPrice;
+  state.optionQuery = optionQuery;
   setPriceInputsFromState();
+  if (optionKeywordEl) optionKeywordEl.value = optionQuery;
 
   return keyword;
 }
@@ -355,9 +382,10 @@ function getVisibleItems() {
     if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
     return true;
   });
+  const filteredByOption = filteredByPrice.filter((item) => matchesOptionQuery(item, state.optionQuery));
   return state.categoryFilter === 'all'
-    ? filteredByPrice
-    : filteredByPrice.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
+    ? filteredByOption
+    : filteredByOption.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
 }
 
 function matchesDefaultExclusions(item, keyword) {
@@ -592,6 +620,15 @@ priceMaxEl.addEventListener('change', () => {
   if (!state.items.length) return;
   renderResults();
 });
+
+if (optionKeywordEl) {
+  optionKeywordEl.addEventListener('input', () => {
+    state.optionQuery = optionKeywordEl.value.trim();
+    syncStateToUrl();
+    if (!state.items.length) return;
+    renderResults();
+  });
+}
 
 favoriteAddEl.addEventListener('click', () => {
   const keyword = keywordInput.value.trim() || state.keyword;
