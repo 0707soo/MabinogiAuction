@@ -22,9 +22,12 @@ const favoriteListEl = document.getElementById('favorite-list');
 const recentListEl = document.getElementById('recent-list');
 const savedFilterListEl = document.getElementById('saved-filter-list');
 const categoryFilterListEl = document.getElementById('category-filter-list');
-const colorFilterListEl = document.getElementById('color-filter-list');
-const colorRgbInputEl = document.getElementById('color-rgb');
-const colorApplyEl = document.getElementById('color-apply');
+const colorRMinEl = document.getElementById('color-r-min');
+const colorRMaxEl = document.getElementById('color-r-max');
+const colorGMinEl = document.getElementById('color-g-min');
+const colorGMaxEl = document.getElementById('color-g-max');
+const colorBMinEl = document.getElementById('color-b-min');
+const colorBMaxEl = document.getElementById('color-b-max');
 const colorResetEl = document.getElementById('color-reset');
 const inspectorTitleEl = document.getElementById('inspector-title');
 const inspectorSummaryEl = document.getElementById('inspector-summary');
@@ -45,7 +48,12 @@ const state = {
   keyword: '',
   items: [],
   categoryFilter: 'all',
-  colorFilter: 'all',
+  colorRMin: '',
+  colorRMax: '',
+  colorGMin: '',
+  colorGMax: '',
+  colorBMin: '',
+  colorBMax: '',
   priceMin: '',
   priceMax: '',
   optionField: 'all',
@@ -289,77 +297,69 @@ function normalizeRgbString(value) {
   return rgb ? rgb.join(',') : '';
 }
 
+function normalizeChannelInput(value) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return '';
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return '';
+  return String(Math.min(255, Math.max(0, Math.floor(parsed))));
+}
+
+function colorRangeSnapshot() {
+  return {
+    rMin: normalizeChannelInput(colorRMinEl?.value || state.colorRMin),
+    rMax: normalizeChannelInput(colorRMaxEl?.value || state.colorRMax),
+    gMin: normalizeChannelInput(colorGMinEl?.value || state.colorGMin),
+    gMax: normalizeChannelInput(colorGMaxEl?.value || state.colorGMax),
+    bMin: normalizeChannelInput(colorBMinEl?.value || state.colorBMin),
+    bMax: normalizeChannelInput(colorBMaxEl?.value || state.colorBMax),
+  };
+}
+
+function hasColorRange() {
+  const { rMin, rMax, gMin, gMax, bMin, bMax } = colorRangeSnapshot();
+  return Boolean(rMin || rMax || gMin || gMax || bMin || bMax);
+}
+
 function hasDetail(item) {
   const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
   return colorOptions.length > 0 || otherOptions.length > 0;
 }
 
-function buildColorOptionList(items = []) {
-  const seen = new Set();
-  const colors = [];
-
-  items.forEach((item) => {
-    (item.item_option || []).forEach((option) => {
-      if (option?.option_type !== '아이템 색상') return;
-      const key = getColorOptionKey(option);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-      colors.push({
-        key,
-        label: option.option_sub_type || option.option_type || key,
-        rgb: parseRgb(option.option_value),
-      });
-    });
-  });
-
-  return colors.sort((a, b) => a.label.localeCompare(b.label, 'ko-KR'));
-}
-
-function renderColorFilters(items) {
-  if (!colorFilterListEl) return;
-  const colors = buildColorOptionList(items);
-  const allowed = new Set(colors.map((entry) => entry.key));
-  if (state.colorFilter !== 'all' && !allowed.has(state.colorFilter)) {
-    state.colorFilter = 'all';
-  }
-  if (colorRgbInputEl) {
-    colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
-  }
-
-  colorFilterListEl.innerHTML = [
-    `<button class="pill color-chip-filter ${state.colorFilter === 'all' ? 'active' : ''}" type="button" data-color="all">전체</button>`,
-    ...colors.map((entry) => {
-      const active = state.colorFilter === entry.key ? 'active' : '';
-      const swatchStyle = entry.rgb ? `style="background: rgb(${entry.rgb.join(',')});"` : '';
-      return `
-        <button class="pill color-chip-filter ${active}" type="button" data-color="${escapeHtml(entry.key)}">
-          <span class="color-chip-dot" ${swatchStyle}></span>
-          ${escapeHtml(entry.key)}
-        </button>
-      `;
-    }),
-  ].join('');
-}
-
 function matchesColorFilter(item) {
-  if (state.colorFilter === 'all') return true;
+  const range = colorRangeSnapshot();
+  const active = hasColorRange();
+  if (!active) return true;
+
+  const minR = range.rMin === '' ? 0 : Number(range.rMin);
+  const maxR = range.rMax === '' ? 255 : Number(range.rMax);
+  const minG = range.gMin === '' ? 0 : Number(range.gMin);
+  const maxG = range.gMax === '' ? 255 : Number(range.gMax);
+  const minB = range.bMin === '' ? 0 : Number(range.bMin);
+  const maxB = range.bMax === '' ? 255 : Number(range.bMax);
+
   return (item.item_option || []).some((option) => {
     if (option?.option_type !== '아이템 색상') return false;
-    return getColorOptionKey(option) === state.colorFilter;
+    const rgb = parseRgb(option.option_value);
+    if (!rgb) return false;
+    const [r, g, b] = rgb;
+    return r >= minR && r <= maxR && g >= minG && g <= maxG && b >= minB && b <= maxB;
   });
-}
-
-function applyColorFilterFromInput() {
-  const normalized = normalizeRgbString(colorRgbInputEl?.value);
-  state.colorFilter = normalized || 'all';
-  if (colorRgbInputEl) colorRgbInputEl.value = normalized;
-  syncStateToUrl();
-  if (state.items.length) renderResults();
 }
 
 function resetColorFilter() {
-  state.colorFilter = 'all';
-  if (colorRgbInputEl) colorRgbInputEl.value = '';
+  state.colorRMin = '';
+  state.colorRMax = '';
+  state.colorGMin = '';
+  state.colorGMax = '';
+  state.colorBMin = '';
+  state.colorBMax = '';
+  if (colorRMinEl) colorRMinEl.value = '';
+  if (colorRMaxEl) colorRMaxEl.value = '';
+  if (colorGMinEl) colorGMinEl.value = '';
+  if (colorGMaxEl) colorGMaxEl.value = '';
+  if (colorBMinEl) colorBMinEl.value = '';
+  if (colorBMaxEl) colorBMaxEl.value = '';
   syncStateToUrl();
   if (state.items.length) renderResults();
 }
@@ -411,7 +411,12 @@ function loadSavedFilters() {
         keyword: String(entry.keyword || '').trim(),
         sort: entry.sort || 'registered',
         category: entry.category || 'all',
-        colorFilter: entry.colorFilter || 'all',
+        colorRMin: String(entry.colorRMin || ''),
+        colorRMax: String(entry.colorRMax || ''),
+        colorGMin: String(entry.colorGMin || ''),
+        colorGMax: String(entry.colorGMax || ''),
+        colorBMin: String(entry.colorBMin || ''),
+        colorBMax: String(entry.colorBMax || ''),
         priceMin: String(entry.priceMin || ''),
         priceMax: String(entry.priceMax || ''),
         optionField: entry.optionField || 'all',
@@ -460,7 +465,12 @@ function makeFilterSnapshot() {
     keyword: state.keyword.trim(),
     sort: sortSelectEl.value,
     category: state.categoryFilter,
-    colorFilter: state.colorFilter,
+    colorRMin: state.colorRMin,
+    colorRMax: state.colorRMax,
+    colorGMin: state.colorGMin,
+    colorGMax: state.colorGMax,
+    colorBMin: state.colorBMin,
+    colorBMax: state.colorBMax,
     priceMin: state.priceMin,
     priceMax: state.priceMax,
     optionField: state.optionField,
@@ -483,7 +493,9 @@ function snapshotLabel(snapshot) {
     parts.push(`옵션값:${label}`);
   }
   if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
-  if (snapshot.colorFilter && snapshot.colorFilter !== 'all') parts.push(`색상:${snapshot.colorFilter}`);
+  if (snapshot.colorRMin || snapshot.colorRMax || snapshot.colorGMin || snapshot.colorGMax || snapshot.colorBMin || snapshot.colorBMax) {
+    parts.push(`색상:R${snapshot.colorRMin || '0'}~${snapshot.colorRMax || '255'} G${snapshot.colorGMin || '0'}~${snapshot.colorGMax || '255'} B${snapshot.colorBMin || '0'}~${snapshot.colorBMax || '255'}`);
+  }
   if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
   if (snapshot.sort && snapshot.sort !== 'registered') parts.push(`정렬:${snapshot.sort}`);
   return parts.length ? parts.join(' · ') : '기본 조건';
@@ -494,7 +506,12 @@ function addSavedFilter(snapshot = makeFilterSnapshot()) {
     keyword: String(snapshot.keyword || '').trim(),
     sort: snapshot.sort || 'registered',
     category: snapshot.category || 'all',
-    colorFilter: snapshot.colorFilter || 'all',
+    colorRMin: String(snapshot.colorRMin || ''),
+    colorRMax: String(snapshot.colorRMax || ''),
+    colorGMin: String(snapshot.colorGMin || ''),
+    colorGMax: String(snapshot.colorGMax || ''),
+    colorBMin: String(snapshot.colorBMin || ''),
+    colorBMax: String(snapshot.colorBMax || ''),
     priceMin: String(snapshot.priceMin || ''),
     priceMax: String(snapshot.priceMax || ''),
     optionField: snapshot.optionField || 'all',
@@ -672,8 +689,18 @@ function syncStateToUrl() {
   if (state.categoryFilter && state.categoryFilter !== 'all') params.set('category', state.categoryFilter);
   else params.delete('category');
 
-  if (state.colorFilter && state.colorFilter !== 'all') params.set('color', state.colorFilter);
-  else params.delete('color');
+  if (state.colorRMin !== '') params.set('colorRMin', state.colorRMin);
+  else params.delete('colorRMin');
+  if (state.colorRMax !== '') params.set('colorRMax', state.colorRMax);
+  else params.delete('colorRMax');
+  if (state.colorGMin !== '') params.set('colorGMin', state.colorGMin);
+  else params.delete('colorGMin');
+  if (state.colorGMax !== '') params.set('colorGMax', state.colorGMax);
+  else params.delete('colorGMax');
+  if (state.colorBMin !== '') params.set('colorBMin', state.colorBMin);
+  else params.delete('colorBMin');
+  if (state.colorBMax !== '') params.set('colorBMax', state.colorBMax);
+  else params.delete('colorBMax');
 
   if (state.priceMin) params.set('minPrice', state.priceMin);
   else params.delete('minPrice');
@@ -701,7 +728,12 @@ function applyUrlState() {
   const keyword = params.get('keyword') || '';
   const sort = params.get('sort') || sortSelectEl.value || 'registered';
   const category = params.get('category') || 'all';
-  const color = normalizeRgbString(params.get('color')) || 'all';
+  const colorRMin = normalizeChannelInput(params.get('colorRMin'));
+  const colorRMax = normalizeChannelInput(params.get('colorRMax'));
+  const colorGMin = normalizeChannelInput(params.get('colorGMin'));
+  const colorGMax = normalizeChannelInput(params.get('colorGMax'));
+  const colorBMin = normalizeChannelInput(params.get('colorBMin'));
+  const colorBMax = normalizeChannelInput(params.get('colorBMax'));
   const minPrice = parsePrice(params.get('minPrice'));
   const maxPrice = parsePrice(params.get('maxPrice'));
   const optionField = params.get('optionField') || 'all';
@@ -711,7 +743,12 @@ function applyUrlState() {
 
   sortSelectEl.value = sort;
   state.categoryFilter = category;
-  state.colorFilter = color;
+  state.colorRMin = colorRMin;
+  state.colorRMax = colorRMax;
+  state.colorGMin = colorGMin;
+  state.colorGMax = colorGMax;
+  state.colorBMin = colorBMin;
+  state.colorBMax = colorBMax;
   state.priceMin = minPrice;
   state.priceMax = maxPrice;
   state.optionField = optionField;
@@ -722,7 +759,12 @@ function applyUrlState() {
   if (optionModeEl) optionModeEl.value = optionMode;
   if (optionMinEl) optionMinEl.value = optionMin;
   if (optionMaxEl) optionMaxEl.value = optionMax;
-  if (colorRgbInputEl) colorRgbInputEl.value = color === 'all' ? '' : color;
+  if (colorRMinEl) colorRMinEl.value = colorRMin;
+  if (colorRMaxEl) colorRMaxEl.value = colorRMax;
+  if (colorGMinEl) colorGMinEl.value = colorGMin;
+  if (colorGMaxEl) colorGMaxEl.value = colorGMax;
+  if (colorBMinEl) colorBMinEl.value = colorBMin;
+  if (colorBMaxEl) colorBMaxEl.value = colorBMax;
 
   return keyword;
 }
@@ -773,7 +815,6 @@ function setEmpty(message) {
   state.selectedIndex = 0;
   renderOptionFieldList([]);
   renderCategoryFilters([]);
-  renderColorFilters([]);
   renderInspector(null);
   resultsCardEl.dataset.filtered = '0';
 }
@@ -871,7 +912,7 @@ function renderResults() {
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   const activeFilters = [
     state.categoryFilter !== 'all' ? '분류' : '',
-    state.colorFilter !== 'all' ? '색상' : '',
+    hasColorRange() ? '색상' : '',
     state.priceMin || state.priceMax ? '가격' : '',
     state.optionField && state.optionField !== 'all' ? '옵션' : '',
     state.optionMin !== '' || state.optionMax !== '' ? '옵션값' : '',
@@ -880,7 +921,6 @@ function renderResults() {
   resultsCardEl.dataset.filtered = String(items.length);
   renderOptionFieldList(getItemsBeforeOptionFilter());
   renderCategoryFilters(visibleItems);
-  renderColorFilters(getItemsBeforeOptionFilter());
 
   const optionFiltersActive = state.optionField !== 'all' || state.optionMin !== '' || state.optionMax !== '';
   const itemsBeforeOptionFilter = getItemsBeforeOptionFilter();
@@ -950,8 +990,18 @@ function renderResults() {
 
 function resetFilters() {
   state.categoryFilter = 'all';
-  state.colorFilter = 'all';
-  if (colorRgbInputEl) colorRgbInputEl.value = '';
+  state.colorRMin = '';
+  state.colorRMax = '';
+  state.colorGMin = '';
+  state.colorGMax = '';
+  state.colorBMin = '';
+  state.colorBMax = '';
+  if (colorRMinEl) colorRMinEl.value = '';
+  if (colorRMaxEl) colorRMaxEl.value = '';
+  if (colorGMinEl) colorGMinEl.value = '';
+  if (colorGMaxEl) colorGMaxEl.value = '';
+  if (colorBMinEl) colorBMinEl.value = '';
+  if (colorBMaxEl) colorBMaxEl.value = '';
   state.priceMin = '';
   state.priceMax = '';
   state.optionField = 'all';
@@ -1263,32 +1313,26 @@ categoryFilterListEl.addEventListener('click', (event) => {
   renderResults();
 });
 
-if (colorFilterListEl) {
-  colorFilterListEl.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-color]');
-    if (!button) return;
-    state.colorFilter = button.dataset.color;
-    if (colorRgbInputEl) colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
+function bindColorInput(el, key) {
+  if (!el) return;
+  el.addEventListener('input', () => {
+    state[key] = normalizeChannelInput(el.value);
+    el.value = state[key];
     syncStateToUrl();
+    if (!state.items.length) return;
     renderResults();
   });
 }
 
-if (colorApplyEl) {
-  colorApplyEl.addEventListener('click', applyColorFilterFromInput);
-}
+bindColorInput(colorRMinEl, 'colorRMin');
+bindColorInput(colorRMaxEl, 'colorRMax');
+bindColorInput(colorGMinEl, 'colorGMin');
+bindColorInput(colorGMaxEl, 'colorGMax');
+bindColorInput(colorBMinEl, 'colorBMin');
+bindColorInput(colorBMaxEl, 'colorBMax');
 
 if (colorResetEl) {
   colorResetEl.addEventListener('click', resetColorFilter);
-}
-
-if (colorRgbInputEl) {
-  colorRgbInputEl.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      applyColorFilterFromInput();
-    }
-  });
 }
 
 if (savedFilterListEl) {
@@ -1306,7 +1350,12 @@ if (savedFilterListEl) {
       keywordInput.value = snapshot.keyword;
       sortSelectEl.value = snapshot.sort || 'registered';
       state.categoryFilter = snapshot.category || 'all';
-      state.colorFilter = snapshot.colorFilter || 'all';
+      state.colorRMin = snapshot.colorRMin || '';
+      state.colorRMax = snapshot.colorRMax || '';
+      state.colorGMin = snapshot.colorGMin || '';
+      state.colorGMax = snapshot.colorGMax || '';
+      state.colorBMin = snapshot.colorBMin || '';
+      state.colorBMax = snapshot.colorBMax || '';
       state.priceMin = snapshot.priceMin || '';
       state.priceMax = snapshot.priceMax || '';
       state.optionField = snapshot.optionField || 'all';
@@ -1314,7 +1363,12 @@ if (savedFilterListEl) {
       state.optionMin = snapshot.optionMin || '';
       state.optionMax = snapshot.optionMax || '';
       setPriceInputsFromState();
-      if (colorRgbInputEl) colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
+      if (colorRMinEl) colorRMinEl.value = state.colorRMin;
+      if (colorRMaxEl) colorRMaxEl.value = state.colorRMax;
+      if (colorGMinEl) colorGMinEl.value = state.colorGMin;
+      if (colorGMaxEl) colorGMaxEl.value = state.colorGMax;
+      if (colorBMinEl) colorBMinEl.value = state.colorBMin;
+      if (colorBMaxEl) colorBMaxEl.value = state.colorBMax;
       if (optionFieldEl) optionFieldEl.value = state.optionField;
       if (optionModeEl) optionModeEl.value = state.optionMode;
       if (optionMinEl) optionMinEl.value = state.optionMin;

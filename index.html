@@ -86,14 +86,14 @@
 
             <div class="color-filter-wrap">
               <div class="favorites-head">
-                <span class="category-filter-label">색상</span>
-                <div class="color-filter-inputs">
-                  <input id="color-rgb" class="color-rgb-input" type="text" inputmode="text" placeholder="255,0,0" />
-                  <button id="color-apply" class="favorite-add" type="button">적용</button>
-                  <button id="color-reset" class="filter-reset" type="button">초기화</button>
-                </div>
+                <span class="category-filter-label">색상 범위</span>
+                <button id="color-reset" class="filter-reset" type="button">초기화</button>
               </div>
-              <div id="color-filter-list" class="category-filter-list color-palette-list"></div>
+              <div class="color-range-grid">
+                <div class="color-range-row"><label>R</label><input id="color-r-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-r-max" type="number" inputmode="numeric" placeholder="255" /></div>
+                <div class="color-range-row"><label>G</label><input id="color-g-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-g-max" type="number" inputmode="numeric" placeholder="255" /></div>
+                <div class="color-range-row"><label>B</label><input id="color-b-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-b-max" type="number" inputmode="numeric" placeholder="255" /></div>
+              </div>
             </div>
           </aside>
 
