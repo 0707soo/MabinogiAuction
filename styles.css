@@ -435,6 +435,40 @@ button {
   }
 }
 
+@media (min-width: 981px) and (max-width: 1240px) {
+  .results-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .saved-filters-panel,
+  .category-filter-wrap {
+    grid-column: 1 / -1;
+  }
+
+  .favorites-panel,
+  .saved-filters-panel,
+  .category-filter-wrap {
+    min-width: 0;
+  }
+
+  .favorites-head,
+  .category-filter-wrap {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .favorite-list,
+  .category-filter-list {
+    width: 100%;
+  }
+
+  .recent-panel {
+    margin-top: 0;
+  }
+}
+
 .results-head {
   display: flex;
   align-items: center;
