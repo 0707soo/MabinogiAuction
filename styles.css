@@ -244,9 +244,9 @@ button {
 }
 
 .saved-filters-panel {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .recent-panel {
@@ -291,6 +291,24 @@ button {
 .results-card {
   margin-top: 14px;
   padding: 16px;
+}
+
+.results-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.results-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
+}
+
+.results-main {
+  min-width: 0;
 }
 
 .results-head {
@@ -652,6 +670,15 @@ button {
 }
 
 @media (max-width: 780px) {
+  .results-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .results-sidebar {
+    padding-right: 0;
+    border-right: 0;
+  }
+
   .results-table-head {
     display: none;
   }

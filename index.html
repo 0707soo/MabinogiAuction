@@ -54,44 +54,52 @@
       </section>
 
       <section class="results-card">
-        <div class="results-head">
-          <h2>검색 결과</h2>
-          <div class="results-tools">
-            <label class="sort-label" for="sort-select">정렬</label>
-            <select id="sort-select" class="sort-select">
-              <option value="registered" selected>등록순</option>
-              <option value="priceAsc">최저가순</option>
-              <option value="expireAsc">만료 임박순</option>
-              <option value="priceDesc">최고가순</option>
-            </select>
-            <div class="price-range">
-              <input id="price-min" class="price-input" type="number" inputmode="numeric" placeholder="최저가" />
-              <span class="price-sep">~</span>
-              <input id="price-max" class="price-input" type="number" inputmode="numeric" placeholder="최고가" />
+        <div class="results-layout">
+          <aside class="results-sidebar">
+            <div class="saved-filters-panel">
+              <div class="favorites-head">
+                <span class="favorites-label">저장된 필터</span>
+                <button id="filter-save" class="favorite-add" type="button">현재 조건 저장</button>
+              </div>
+              <div id="saved-filter-list" class="favorite-list"></div>
             </div>
-            <button id="filter-reset" class="filter-reset" type="button">초기화</button>
-            <span id="result-count" class="result-count">0건</span>
+
+            <div class="category-filter-wrap">
+              <span class="category-filter-label">분류</span>
+              <div id="category-filter-list" class="category-filter-list"></div>
+            </div>
+          </aside>
+
+          <div class="results-main">
+            <div class="results-head">
+              <h2>검색 결과</h2>
+              <div class="results-tools">
+                <label class="sort-label" for="sort-select">정렬</label>
+                <select id="sort-select" class="sort-select">
+                  <option value="registered" selected>등록순</option>
+                  <option value="priceAsc">최저가순</option>
+                  <option value="expireAsc">만료 임박순</option>
+                  <option value="priceDesc">최고가순</option>
+                </select>
+                <div class="price-range">
+                  <input id="price-min" class="price-input" type="number" inputmode="numeric" placeholder="최저가" />
+                  <span class="price-sep">~</span>
+                  <input id="price-max" class="price-input" type="number" inputmode="numeric" placeholder="최고가" />
+                </div>
+                <button id="filter-reset" class="filter-reset" type="button">초기화</button>
+                <span id="result-count" class="result-count">0건</span>
+              </div>
+            </div>
+            <div class="results-table-head" aria-hidden="true">
+              <span>아이템</span>
+              <span>분류</span>
+              <span class="col-qty">수량</span>
+              <span>만료</span>
+              <span class="col-price">가격</span>
+            </div>
+            <ul id="results" class="results"></ul>
           </div>
         </div>
-        <div class="saved-filters-panel">
-          <div class="favorites-head">
-            <span class="favorites-label">저장된 필터</span>
-            <button id="filter-save" class="favorite-add" type="button">현재 조건 저장</button>
-          </div>
-          <div id="saved-filter-list" class="favorite-list"></div>
-        </div>
-        <div class="category-filter-wrap">
-          <span class="category-filter-label">분류</span>
-          <div id="category-filter-list" class="category-filter-list"></div>
-        </div>
-        <div class="results-table-head" aria-hidden="true">
-          <span>아이템</span>
-          <span>분류</span>
-          <span class="col-qty">수량</span>
-          <span>만료</span>
-          <span class="col-price">가격</span>
-        </div>
-        <ul id="results" class="results"></ul>
       </section>
 
       <footer class="footer">
