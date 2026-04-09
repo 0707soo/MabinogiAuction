@@ -297,6 +297,18 @@ function normalizeRgbString(value) {
   return rgb ? rgb.join(',') : '';
 }
 
+function extractOptionRgb(option) {
+  const parsed = parseRgb(option?.option_value);
+  if (parsed) return parsed;
+  const numbers = [
+    ...extractNumbers(option?.option_value),
+    ...extractNumbers(option?.option_value2),
+    ...extractNumbers(option?.option_desc),
+  ];
+  if (numbers.length < 3) return null;
+  return numbers.slice(0, 3).map((num) => Math.max(0, Math.min(255, Math.floor(num))));
+}
+
 function normalizeChannelInput(value) {
   const normalized = String(value ?? '').trim();
   if (!normalized) return '';
@@ -340,7 +352,7 @@ function matchesColorFilter(item) {
 
   return (item.item_option || []).some((option) => {
     if (option?.option_type !== '아이템 색상') return false;
-    const rgb = parseRgb(option.option_value);
+    const rgb = extractOptionRgb(option);
     if (!rgb) return false;
     const [r, g, b] = rgb;
     return r >= minR && r <= maxR && g >= minG && g <= maxG && b >= minB && b <= maxB;
@@ -494,7 +506,7 @@ function snapshotLabel(snapshot) {
   }
   if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
   if (snapshot.colorRMin || snapshot.colorRMax || snapshot.colorGMin || snapshot.colorGMax || snapshot.colorBMin || snapshot.colorBMax) {
-    parts.push(`색상:R${snapshot.colorRMin || '0'}~${snapshot.colorRMax || '255'} G${snapshot.colorGMin || '0'}~${snapshot.colorGMax || '255'} B${snapshot.colorBMin || '0'}~${snapshot.colorBMax || '255'}`);
+    parts.push(`RGB:R${snapshot.colorRMin || '0'}~${snapshot.colorRMax || '255'} G${snapshot.colorGMin || '0'}~${snapshot.colorGMax || '255'} B${snapshot.colorBMin || '0'}~${snapshot.colorBMax || '255'}`);
   }
   if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
   if (snapshot.sort && snapshot.sort !== 'registered') parts.push(`정렬:${snapshot.sort}`);
@@ -873,7 +885,7 @@ function renderInspector(item) {
     inspectorColorsEl.classList.remove('empty-state');
     inspectorColorsEl.innerHTML = colorOptions
       .map((option) => {
-        const rgb = parseRgb(option.option_value);
+        const rgb = extractOptionRgb(option);
         const swatchStyle = rgb ? `style="background: rgb(${rgb.join(',')});"` : '';
         const swatchText = option.option_value || '-';
         return `
@@ -912,7 +924,7 @@ function renderResults() {
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   const activeFilters = [
     state.categoryFilter !== 'all' ? '분류' : '',
-    hasColorRange() ? '색상' : '',
+    hasColorRange() ? 'RGB' : '',
     state.priceMin || state.priceMax ? '가격' : '',
     state.optionField && state.optionField !== 'all' ? '옵션' : '',
     state.optionMin !== '' || state.optionMax !== '' ? '옵션값' : '',
