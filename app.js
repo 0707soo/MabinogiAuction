@@ -128,42 +128,70 @@ function getOptionFieldLabel(option) {
   return [option?.option_type, option?.option_sub_type].filter(Boolean).join(' ').trim();
 }
 
+function getOptionFieldGroup(option) {
+  const type = String(option?.option_type || '').trim();
+  if (!type) return '기타';
+  if (type.startsWith('세공 옵션')) return '세공 옵션';
+  if (type.startsWith('인챈트 접두')) return '인챈트 접두';
+  if (type.startsWith('인챈트 접미')) return '인챈트 접미';
+  if (type.startsWith('아이템 색상')) return '아이템 색상';
+  if (type.startsWith('세트 효과')) return '세트 효과';
+  if (type.startsWith('일반 개조')) return '개조';
+  if (type.startsWith('특별 개조')) return '개조';
+  if (type.startsWith('보석 개조')) return '개조';
+  if (type.startsWith('에르그')) return '에르그';
+  if (type.startsWith('남은 전용 해제 가능 횟수')) return '기타';
+  return type.split(' ')[0] || '기타';
+}
+
 function extractNumbers(value) {
   const matches = String(value || '').match(/-?\d+(?:\.\d+)?/g) || [];
   return matches.map((part) => Number(part)).filter((num) => Number.isFinite(num));
 }
 
-function buildOptionFieldList(items = []) {
+function buildOptionFieldGroups(items = []) {
   const seen = new Set();
-  const fields = [];
+  const groups = new Map();
 
   items.forEach((item) => {
     (item.item_option || []).forEach((option) => {
       const label = getOptionFieldLabel(option);
       if (!label || seen.has(label)) return;
       seen.add(label);
-      fields.push(label);
+      const group = getOptionFieldGroup(option);
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(label);
     });
   });
 
-  return fields;
+  return [...groups.entries()].map(([group, fields]) => ({
+    group,
+    fields: fields.sort((a, b) => a.localeCompare(b, 'ko-KR')),
+  }));
 }
 
 function renderOptionFieldList(items) {
   if (!optionFieldEl) return;
-  const fields = buildOptionFieldList(items);
+  const groups = buildOptionFieldGroups(items);
+  const fields = groups.flatMap((entry) => entry.fields);
   state.optionFields = fields;
 
   const current = fields.includes(state.optionField) ? state.optionField : 'all';
   if (current !== state.optionField) state.optionField = current;
 
-  optionFieldEl.innerHTML = ['all', ...fields]
-    .map((field) => {
-      const label = field === 'all' ? '전체 항목' : field;
-      const selected = state.optionField === field ? 'selected' : '';
-      return `<option value="${escapeHtml(field)}" ${selected}>${escapeHtml(label)}</option>`;
-    })
-    .join('');
+  const allOptions = [
+    `<option value="all" ${state.optionField === 'all' ? 'selected' : ''}>전체 항목</option>`,
+    ...groups.map((entry) => `
+      <optgroup label="${escapeHtml(entry.group)} (${entry.fields.length})">
+        ${entry.fields.map((field) => {
+          const selected = state.optionField === field ? 'selected' : '';
+          return `<option value="${escapeHtml(field)}" ${selected}>${escapeHtml(field)}</option>`;
+        }).join('')}
+      </optgroup>
+    `),
+  ];
+
+  optionFieldEl.innerHTML = allOptions.join('');
   optionFieldEl.disabled = fields.length === 0;
 }
 
