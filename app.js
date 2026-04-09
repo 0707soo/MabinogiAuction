@@ -153,12 +153,24 @@ function getOptionValueSearchText(item) {
     .toLowerCase();
 }
 
-function matchesOptionQueries(item, typeQuery, valueQuery) {
-  const typeValue = String(typeQuery || '').trim().toLowerCase();
-  const optionValue = String(valueQuery || '').trim().toLowerCase();
+function parseOptionTerms(query) {
+  return String(query || '')
+    .split(/[\s;]+/)
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 3);
+}
 
-  if (typeValue && !getOptionTypeSearchText(item).includes(typeValue)) return false;
-  if (optionValue && !getOptionValueSearchText(item).includes(optionValue)) return false;
+function matchesAllTerms(text, query) {
+  const terms = parseOptionTerms(query);
+  if (!terms.length) return true;
+  const normalized = String(text || '').toLowerCase();
+  return terms.every((term) => normalized.includes(term));
+}
+
+function matchesOptionQueries(item, typeQuery, valueQuery) {
+  if (!matchesAllTerms(getOptionTypeSearchText(item), typeQuery)) return false;
+  if (!matchesAllTerms(getOptionValueSearchText(item), valueQuery)) return false;
   return true;
 }
 
@@ -515,7 +527,7 @@ function renderResults() {
   const activeFilters = [
     state.categoryFilter !== 'all' ? '분류' : '',
     state.priceMin || state.priceMax ? '가격' : '',
-    state.optionTypeQuery || state.optionValueQuery ? '옵션' : '',
+    parseOptionTerms(state.optionTypeQuery).length || parseOptionTerms(state.optionValueQuery).length ? `옵션 ${Math.max(parseOptionTerms(state.optionTypeQuery).length, parseOptionTerms(state.optionValueQuery).length)}개` : '',
   ].filter(Boolean);
   resultCountEl.innerHTML = `${items.length}건${activeFilters.length ? ` · <strong>${escapeHtml(activeFilters.join('/'))}</strong>` : ''}`;
   resultsCardEl.dataset.filtered = String(items.length);
