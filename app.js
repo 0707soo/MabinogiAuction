@@ -131,10 +131,10 @@ function getOptionFieldLabel(option) {
 function getOptionFieldGroup(option) {
   const type = String(option?.option_type || '').trim();
   if (!type) return '기타';
-  if (type.startsWith('세공 옵션')) return '세공 옵션';
-  if (type.startsWith('인챈트 접두')) return '인챈트 접두';
-  if (type.startsWith('인챈트 접미')) return '인챈트 접미';
-  if (type.startsWith('아이템 색상')) return '아이템 색상';
+  if (type.startsWith('세공 옵션')) return '세공';
+  if (type.startsWith('인챈트 접두')) return '인챈트, 접두';
+  if (type.startsWith('인챈트 접미')) return '인챈트, 접미';
+  if (type.startsWith('아이템 색상')) return '색상';
   if (type.startsWith('세트 효과')) return '세트 효과';
   if (type.startsWith('일반 개조')) return '개조';
   if (type.startsWith('특별 개조')) return '개조';
@@ -180,9 +180,9 @@ function renderOptionFieldList(items) {
   if (current !== state.optionField) state.optionField = current;
 
   const allOptions = [
-    `<option value="all" ${state.optionField === 'all' ? 'selected' : ''}>전체 항목</option>`,
+    `<option value="all" ${state.optionField === 'all' ? 'selected' : ''}>전체</option>`,
     ...groups.map((entry) => `
-      <optgroup label="${escapeHtml(entry.group)} (${entry.fields.length})">
+      <optgroup label="${escapeHtml(entry.group)} · ${entry.fields.length}">
         ${entry.fields.map((field) => {
           const selected = state.optionField === field ? 'selected' : '';
           return `<option value="${escapeHtml(field)}" ${selected}>${escapeHtml(field)}</option>`;
