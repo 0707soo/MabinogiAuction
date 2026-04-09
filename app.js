@@ -530,6 +530,14 @@ function getQuantityColumnEnabled(items) {
   return items.some((item) => (item.item_count ?? 1) > 1);
 }
 
+function isCompactLayout() {
+  try {
+    return window.matchMedia('(max-width: 1240px)').matches;
+  } catch {
+    return false;
+  }
+}
+
 function loadSortPreference() {
   try {
     const value = window.localStorage.getItem(SORT_STORAGE_KEY);
@@ -757,6 +765,7 @@ function renderResults() {
   state.visibleItems = items;
   if (state.selectedIndex >= items.length) state.selectedIndex = 0;
   const selectedItem = items[state.selectedIndex] || null;
+  const compactLayout = isCompactLayout();
   const showQuantity = getQuantityColumnEnabled(items);
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   const activeFilters = [
@@ -773,8 +782,12 @@ function renderResults() {
   const optionFiltersActive = state.optionField !== 'all' || state.optionMin !== '' || state.optionMax !== '';
   const itemsBeforeOptionFilter = getItemsBeforeOptionFilter();
 
-  if (!items.length) {
+  if (compactLayout) {
     renderInspector(null);
+  }
+
+  if (!items.length) {
+    if (!compactLayout) renderInspector(null);
     resultsCardEl.classList.remove('qty-off');
     if (optionFiltersActive && itemsBeforeOptionFilter.length) {
       renderZeroResults('옵션 조건에 맞는 결과가 없습니다.', true);
@@ -825,7 +838,9 @@ function renderResults() {
     })
       .join('');
 
-  renderInspector(selectedItem);
+  if (!compactLayout) {
+    renderInspector(selectedItem);
+  }
 
   syncStateToUrl();
 }
@@ -1181,6 +1196,10 @@ resultsEl.addEventListener('click', (event) => {
   const index = Number(button.dataset.index);
   const item = state.visibleItems[index];
   if (!item) return;
+  if (isCompactLayout()) {
+    openModal(item);
+    return;
+  }
   state.selectedIndex = index;
   renderResults();
 });
@@ -1190,6 +1209,15 @@ modalBackdropEl.addEventListener('click', closeModal);
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !modalEl.classList.contains('hidden')) {
     closeModal();
+  }
+});
+
+let layoutMode = isCompactLayout();
+window.addEventListener('resize', () => {
+  const nextMode = isCompactLayout();
+  if (nextMode !== layoutMode) {
+    layoutMode = nextMode;
+    if (state.items.length) renderResults();
   }
 });
 

@@ -417,8 +417,7 @@ button {
     grid-template-columns: 1fr;
     grid-template-areas:
       'sidebar'
-      'main'
-      'inspector';
+      'main';
   }
 
   .results-sidebar,
@@ -428,6 +427,10 @@ button {
     padding-left: 0;
     border-right: 0;
     border-left: 0;
+  }
+
+  .results-inspector {
+    display: none;
   }
 
   .results-main {
