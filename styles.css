@@ -316,9 +316,11 @@ button {
   display: grid;
   grid-template-columns: 270px minmax(0, 1.08fr) 360px;
   gap: 18px;
+  grid-template-areas: 'sidebar main inspector';
 }
 
 .results-sidebar {
+  grid-area: sidebar;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -330,10 +332,12 @@ button {
 }
 
 .results-main {
+  grid-area: main;
   min-width: 0;
 }
 
 .results-inspector {
+  grid-area: inspector;
   min-width: 0;
   padding-left: 16px;
   border-left: 1px solid var(--line);
@@ -406,6 +410,29 @@ button {
 .inspector-section h4 {
   font-size: 0.88rem;
   color: var(--muted);
+}
+
+@media (max-width: 1240px) {
+  .results-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'sidebar'
+      'main'
+      'inspector';
+  }
+
+  .results-sidebar,
+  .results-inspector {
+    position: static;
+    padding-right: 0;
+    padding-left: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .results-main {
+    margin-top: 4px;
+  }
 }
 
 .results-head {
@@ -793,21 +820,6 @@ button {
 }
 
 @media (max-width: 780px) {
-  .results-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .results-sidebar {
-    padding-right: 0;
-    border-right: 0;
-  }
-
-  .results-inspector {
-    padding-left: 0;
-    border-left: 0;
-    position: static;
-  }
-
   .results-table-head {
     display: none;
   }
