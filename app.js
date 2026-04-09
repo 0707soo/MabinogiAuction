@@ -979,9 +979,23 @@ priceMinEl.addEventListener('change', () => {
   renderResults();
 });
 
+priceMinEl.addEventListener('input', () => {
+  state.priceMin = parsePrice(priceMinEl.value);
+  syncStateToUrl();
+  if (!state.items.length) return;
+  renderResults();
+});
+
 priceMaxEl.addEventListener('change', () => {
   state.priceMax = parsePrice(priceMaxEl.value);
   setPriceInputsFromState();
+  syncStateToUrl();
+  if (!state.items.length) return;
+  renderResults();
+});
+
+priceMaxEl.addEventListener('input', () => {
+  state.priceMax = parsePrice(priceMaxEl.value);
   syncStateToUrl();
   if (!state.items.length) return;
   renderResults();
@@ -1013,12 +1027,26 @@ if (optionMinEl) {
     if (!state.items.length) return;
     renderResults();
   });
+
+  optionMinEl.addEventListener('input', () => {
+    state.optionMin = parsePrice(optionMinEl.value);
+    syncStateToUrl();
+    if (!state.items.length) return;
+    renderResults();
+  });
 }
 
 if (optionMaxEl) {
   optionMaxEl.addEventListener('change', () => {
     state.optionMax = parsePrice(optionMaxEl.value);
     optionMaxEl.value = state.optionMax;
+    syncStateToUrl();
+    if (!state.items.length) return;
+    renderResults();
+  });
+
+  optionMaxEl.addEventListener('input', () => {
+    state.optionMax = parsePrice(optionMaxEl.value);
     syncStateToUrl();
     if (!state.items.length) return;
     renderResults();
