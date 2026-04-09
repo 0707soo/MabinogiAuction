@@ -23,6 +23,9 @@ const recentListEl = document.getElementById('recent-list');
 const savedFilterListEl = document.getElementById('saved-filter-list');
 const categoryFilterListEl = document.getElementById('category-filter-list');
 const colorFilterListEl = document.getElementById('color-filter-list');
+const colorRgbInputEl = document.getElementById('color-rgb');
+const colorApplyEl = document.getElementById('color-apply');
+const colorResetEl = document.getElementById('color-reset');
 const inspectorTitleEl = document.getElementById('inspector-title');
 const inspectorSummaryEl = document.getElementById('inspector-summary');
 const inspectorColorsEl = document.getElementById('inspector-colors');
@@ -133,11 +136,11 @@ function splitOptions(options = []) {
 }
 
 function getColorOptionLabel(option) {
-  return [option?.option_type, option?.option_sub_type, option?.option_value].filter(Boolean).join(' ').trim();
+  return [option?.option_sub_type || option?.option_type, option?.option_value].filter(Boolean).join(' ').trim();
 }
 
 function getColorOptionKey(option) {
-  return getColorOptionLabel(option);
+  return normalizeRgbString(option?.option_value) || '';
 }
 
 function getOptionFieldLabel(option) {
@@ -281,6 +284,11 @@ function parseRgb(value) {
   return parts.map((part) => Math.max(0, Math.min(255, part)));
 }
 
+function normalizeRgbString(value) {
+  const rgb = parseRgb(value);
+  return rgb ? rgb.join(',') : '';
+}
+
 function hasDetail(item) {
   const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
   return colorOptions.length > 0 || otherOptions.length > 0;
@@ -314,6 +322,9 @@ function renderColorFilters(items) {
   if (state.colorFilter !== 'all' && !allowed.has(state.colorFilter)) {
     state.colorFilter = 'all';
   }
+  if (colorRgbInputEl) {
+    colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
+  }
 
   colorFilterListEl.innerHTML = [
     `<button class="pill color-chip-filter ${state.colorFilter === 'all' ? 'active' : ''}" type="button" data-color="all">전체</button>`,
@@ -323,7 +334,7 @@ function renderColorFilters(items) {
       return `
         <button class="pill color-chip-filter ${active}" type="button" data-color="${escapeHtml(entry.key)}">
           <span class="color-chip-dot" ${swatchStyle}></span>
-          ${escapeHtml(entry.label)}
+          ${escapeHtml(entry.key)}
         </button>
       `;
     }),
@@ -336,6 +347,21 @@ function matchesColorFilter(item) {
     if (option?.option_type !== '아이템 색상') return false;
     return getColorOptionKey(option) === state.colorFilter;
   });
+}
+
+function applyColorFilterFromInput() {
+  const normalized = normalizeRgbString(colorRgbInputEl?.value);
+  state.colorFilter = normalized || 'all';
+  if (colorRgbInputEl) colorRgbInputEl.value = normalized;
+  syncStateToUrl();
+  if (state.items.length) renderResults();
+}
+
+function resetColorFilter() {
+  state.colorFilter = 'all';
+  if (colorRgbInputEl) colorRgbInputEl.value = '';
+  syncStateToUrl();
+  if (state.items.length) renderResults();
 }
 
 function loadFavorites() {
@@ -675,7 +701,7 @@ function applyUrlState() {
   const keyword = params.get('keyword') || '';
   const sort = params.get('sort') || sortSelectEl.value || 'registered';
   const category = params.get('category') || 'all';
-  const color = params.get('color') || 'all';
+  const color = normalizeRgbString(params.get('color')) || 'all';
   const minPrice = parsePrice(params.get('minPrice'));
   const maxPrice = parsePrice(params.get('maxPrice'));
   const optionField = params.get('optionField') || 'all';
@@ -696,6 +722,7 @@ function applyUrlState() {
   if (optionModeEl) optionModeEl.value = optionMode;
   if (optionMinEl) optionMinEl.value = optionMin;
   if (optionMaxEl) optionMaxEl.value = optionMax;
+  if (colorRgbInputEl) colorRgbInputEl.value = color === 'all' ? '' : color;
 
   return keyword;
 }
@@ -924,6 +951,7 @@ function renderResults() {
 function resetFilters() {
   state.categoryFilter = 'all';
   state.colorFilter = 'all';
+  if (colorRgbInputEl) colorRgbInputEl.value = '';
   state.priceMin = '';
   state.priceMax = '';
   state.optionField = 'all';
@@ -1240,8 +1268,26 @@ if (colorFilterListEl) {
     const button = event.target.closest('[data-color]');
     if (!button) return;
     state.colorFilter = button.dataset.color;
+    if (colorRgbInputEl) colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
     syncStateToUrl();
     renderResults();
+  });
+}
+
+if (colorApplyEl) {
+  colorApplyEl.addEventListener('click', applyColorFilterFromInput);
+}
+
+if (colorResetEl) {
+  colorResetEl.addEventListener('click', resetColorFilter);
+}
+
+if (colorRgbInputEl) {
+  colorRgbInputEl.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyColorFilterFromInput();
+    }
   });
 }
 
@@ -1268,6 +1314,7 @@ if (savedFilterListEl) {
       state.optionMin = snapshot.optionMin || '';
       state.optionMax = snapshot.optionMax || '';
       setPriceInputsFromState();
+      if (colorRgbInputEl) colorRgbInputEl.value = state.colorFilter === 'all' ? '' : state.colorFilter;
       if (optionFieldEl) optionFieldEl.value = state.optionField;
       if (optionModeEl) optionModeEl.value = state.optionMode;
       if (optionMinEl) optionMinEl.value = state.optionMin;

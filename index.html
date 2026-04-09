@@ -14,7 +14,7 @@
           <p class="eyebrow">MabinogiAuction</p>
           <span class="hero-chip">LIVE</span>
         </div>
-        <h1>경매장 검색기</h1>
+        <h1><a class="hero-link" href="https://0707soo.github.io/">경매장 검색기</a></h1>
       </header>
 
       <section class="search-card">
@@ -85,8 +85,15 @@
             </div>
 
             <div class="color-filter-wrap">
-              <span class="category-filter-label">색상</span>
-              <div id="color-filter-list" class="category-filter-list"></div>
+              <div class="favorites-head">
+                <span class="category-filter-label">색상</span>
+                <div class="color-filter-inputs">
+                  <input id="color-rgb" class="color-rgb-input" type="text" inputmode="text" placeholder="255,0,0" />
+                  <button id="color-apply" class="favorite-add" type="button">적용</button>
+                  <button id="color-reset" class="filter-reset" type="button">초기화</button>
+                </div>
+              </div>
+              <div id="color-filter-list" class="category-filter-list color-palette-list"></div>
             </div>
           </aside>
 
