@@ -127,6 +127,17 @@ h1 {
   gap: 12px;
 }
 
+.option-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.option-reset {
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
 .search-form > input[type="text"] {
   width: 100%;
   margin-top: 4px;

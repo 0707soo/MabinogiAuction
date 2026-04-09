@@ -12,6 +12,7 @@ const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
 const optionTypeEl = document.getElementById('option-type');
 const optionValueEl = document.getElementById('option-value');
+const optionResetEl = document.getElementById('option-reset');
 const filterResetEl = document.getElementById('filter-reset');
 const filterSaveEl = document.getElementById('filter-save');
 const favoriteAddEl = document.getElementById('favorite-add');
@@ -597,6 +598,15 @@ function resetFilters() {
   if (state.items.length) renderResults();
 }
 
+function resetOptionFilters() {
+  state.optionTypeQuery = '';
+  state.optionValueQuery = '';
+  if (optionTypeEl) optionTypeEl.value = '';
+  if (optionValueEl) optionValueEl.value = '';
+  syncStateToUrl();
+  if (state.items.length) renderResults();
+}
+
 function openModal(item) {
   const itemName = item.item_display_name || item.item_name || '이름 없음';
   const category = item.auction_item_category || '분류 없음';
@@ -776,6 +786,10 @@ if (optionValueEl) {
 
 if (filterResetEl) {
   filterResetEl.addEventListener('click', resetFilters);
+}
+
+if (optionResetEl) {
+  optionResetEl.addEventListener('click', resetOptionFilters);
 }
 
 if (filterSaveEl) {
