@@ -51,19 +51,6 @@
           </details>
         </form>
         <p id="status" class="status">검색어를 입력해 주세요.</p>
-        <div class="favorites-panel">
-          <div class="favorites-head">
-            <span class="favorites-label">즐겨찾기 검색어</span>
-            <button id="favorite-add" class="favorite-add" type="button">현재 검색어 저장</button>
-          </div>
-          <div id="favorite-list" class="favorite-list"></div>
-        </div>
-        <div class="favorites-panel recent-panel">
-          <div class="favorites-head">
-            <span class="favorites-label">최근 검색</span>
-          </div>
-          <div id="recent-list" class="favorite-list"></div>
-        </div>
       </section>
 
       <section class="results-card">
@@ -75,6 +62,21 @@
                 <button id="filter-save" class="favorite-add" type="button">현재 조건 저장</button>
               </div>
               <div id="saved-filter-list" class="favorite-list"></div>
+            </div>
+
+            <div class="favorites-panel sidebar-panel">
+              <div class="favorites-head">
+                <span class="favorites-label">즐겨찾기 검색어</span>
+                <button id="favorite-add" class="favorite-add" type="button">현재 검색어 저장</button>
+              </div>
+              <div id="favorite-list" class="favorite-list"></div>
+            </div>
+
+            <div class="favorites-panel recent-panel sidebar-panel">
+              <div class="favorites-head">
+                <span class="favorites-label">최근 검색</span>
+              </div>
+              <div id="recent-list" class="favorite-list"></div>
             </div>
 
             <div class="category-filter-wrap">
