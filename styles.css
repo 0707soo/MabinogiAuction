@@ -189,6 +189,10 @@ button {
   margin-top: 12px;
 }
 
+.recent-panel {
+  margin-top: 12px;
+}
+
 .favorite-chip {
   display: inline-flex;
   align-items: center;
@@ -247,6 +251,34 @@ button {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.price-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--input-bg);
+}
+
+.price-input {
+  width: 96px;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.price-input:focus {
+  outline: none;
+}
+
+.price-sep {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .sort-label {
@@ -601,6 +633,8 @@ button {
   .results-head { align-items: flex-start; flex-direction: column; }
   .results-tools { width: 100%; }
   .sort-select { width: 100%; }
+  .price-range { width: 100%; }
+  .price-input { width: 100%; min-width: 0; }
   .favorite-add { width: auto; }
   .favorites-head,
   .category-filter-wrap { align-items: flex-start; flex-direction: column; }

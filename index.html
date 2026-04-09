@@ -33,6 +33,12 @@
           </div>
           <div id="favorite-list" class="favorite-list"></div>
         </div>
+        <div class="favorites-panel recent-panel">
+          <div class="favorites-head">
+            <span class="favorites-label">최근 검색</span>
+          </div>
+          <div id="recent-list" class="favorite-list"></div>
+        </div>
       </section>
 
       <section class="results-card">
@@ -46,6 +52,11 @@
               <option value="expireAsc">만료 임박순</option>
               <option value="priceDesc">최고가순</option>
             </select>
+            <div class="price-range">
+              <input id="price-min" class="price-input" type="number" inputmode="numeric" placeholder="최저가" />
+              <span class="price-sep">~</span>
+              <input id="price-max" class="price-input" type="number" inputmode="numeric" placeholder="최고가" />
+            </div>
             <span id="result-count" class="result-count">0건</span>
           </div>
         </div>

@@ -8,8 +8,11 @@ const resultsCardEl = document.querySelector('.results-card');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
+const priceMinEl = document.getElementById('price-min');
+const priceMaxEl = document.getElementById('price-max');
 const favoriteAddEl = document.getElementById('favorite-add');
 const favoriteListEl = document.getElementById('favorite-list');
+const recentListEl = document.getElementById('recent-list');
 const categoryFilterListEl = document.getElementById('category-filter-list');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
@@ -26,11 +29,15 @@ const state = {
   keyword: '',
   items: [],
   categoryFilter: 'all',
+  priceMin: '',
+  priceMax: '',
   favorites: [],
+  recentSearches: [],
 };
 
 const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
 const FAVORITES_STORAGE_KEY = 'mabinogi-auction:favorites';
+const RECENTS_STORAGE_KEY = 'mabinogi-auction:recent-searches';
 const SORT_STORAGE_KEY = 'mabinogi-auction:sort';
 
 function escapeHtml(value) {
@@ -144,6 +151,24 @@ function saveFavorites() {
   }
 }
 
+function loadRecentSearches() {
+  try {
+    const raw = window.localStorage.getItem(RECENTS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearches() {
+  try {
+    window.localStorage.setItem(RECENTS_STORAGE_KEY, JSON.stringify(state.recentSearches.slice(0, 8)));
+  } catch {
+    // ignore storage failures
+  }
+}
+
 function addFavorite(keyword) {
   const value = String(keyword || '').trim();
   if (!value) return;
@@ -158,6 +183,20 @@ function removeFavorite(keyword) {
   renderFavorites();
 }
 
+function addRecentSearch(keyword) {
+  const value = String(keyword || '').trim();
+  if (!value) return;
+  state.recentSearches = [value, ...state.recentSearches.filter((item) => item !== value)].slice(0, 8);
+  saveRecentSearches();
+  renderRecentSearches();
+}
+
+function removeRecentSearch(keyword) {
+  state.recentSearches = state.recentSearches.filter((item) => item !== keyword);
+  saveRecentSearches();
+  renderRecentSearches();
+}
+
 function renderFavorites() {
   if (!favoriteListEl) return;
   if (!state.favorites.length) {
@@ -170,6 +209,25 @@ function renderFavorites() {
       (keyword) => `
         <span class="favorite-chip" data-keyword="${escapeHtml(keyword)}">
           <button class="pill favorite-open" type="button">${escapeHtml(keyword)}</button>
+          <button class="pill-remove" type="button" aria-label="${escapeHtml(keyword)} 삭제">×</button>
+        </span>
+      `
+      )
+    .join('');
+}
+
+function renderRecentSearches() {
+  if (!recentListEl) return;
+  if (!state.recentSearches.length) {
+    recentListEl.innerHTML = '<span class="muted">최근 검색이 없습니다.</span>';
+    return;
+  }
+
+  recentListEl.innerHTML = state.recentSearches
+    .map(
+      (keyword) => `
+        <span class="favorite-chip" data-recent="${escapeHtml(keyword)}">
+          <button class="pill recent-open" type="button">${escapeHtml(keyword)}</button>
           <button class="pill-remove" type="button" aria-label="${escapeHtml(keyword)} 삭제">×</button>
         </span>
       `
@@ -194,6 +252,9 @@ function renderCategoryFilters(items) {
   if (!categoryFilterListEl) return;
   const categories = getAvailableCategories(items);
   const buttons = ['all', ...categories];
+  if (state.categoryFilter !== 'all' && !categories.includes(state.categoryFilter)) {
+    state.categoryFilter = 'all';
+  }
   categoryFilterListEl.innerHTML = buttons
     .map((category) => {
       const label = category === 'all' ? '전체' : category;
@@ -235,12 +296,68 @@ function saveSortPreference() {
   }
 }
 
+function parsePrice(value) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return '';
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? String(Math.max(0, Math.floor(parsed))) : '';
+}
+
+function setPriceInputsFromState() {
+  if (priceMinEl) priceMinEl.value = state.priceMin;
+  if (priceMaxEl) priceMaxEl.value = state.priceMax;
+}
+
+function syncStateToUrl() {
+  const url = new URL(window.location.href);
+  const params = url.searchParams;
+
+  if (state.keyword) params.set('keyword', state.keyword);
+  else params.delete('keyword');
+
+  if (sortSelectEl.value && sortSelectEl.value !== 'registered') params.set('sort', sortSelectEl.value);
+  else params.delete('sort');
+
+  if (state.categoryFilter && state.categoryFilter !== 'all') params.set('category', state.categoryFilter);
+  else params.delete('category');
+
+  if (state.priceMin) params.set('minPrice', state.priceMin);
+  else params.delete('minPrice');
+
+  if (state.priceMax) params.set('maxPrice', state.priceMax);
+  else params.delete('maxPrice');
+
+  window.history.replaceState({}, '', url);
+}
+
+function applyUrlState() {
+  const params = new URL(window.location.href).searchParams;
+  const keyword = params.get('keyword') || '';
+  const sort = params.get('sort') || sortSelectEl.value || 'registered';
+  const category = params.get('category') || 'all';
+  const minPrice = parsePrice(params.get('minPrice'));
+  const maxPrice = parsePrice(params.get('maxPrice'));
+
+  sortSelectEl.value = sort;
+  state.categoryFilter = category;
+  state.priceMin = minPrice;
+  state.priceMax = maxPrice;
+  setPriceInputsFromState();
+
+  return keyword;
+}
+
 function getVisibleItems() {
   const filteredByDefault = state.items.filter((item) => matchesDefaultExclusions(item, state.keyword));
-  const filteredByCategory = state.categoryFilter === 'all'
-    ? filteredByDefault
-    : filteredByDefault.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
-  return filteredByCategory;
+  const filteredByPrice = filteredByDefault.filter((item) => {
+    const price = Number(item.auction_price_per_unit ?? 0);
+    if (state.priceMin !== '' && price < Number(state.priceMin)) return false;
+    if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
+    return true;
+  });
+  return state.categoryFilter === 'all'
+    ? filteredByPrice
+    : filteredByPrice.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
 }
 
 function matchesDefaultExclusions(item, keyword) {
@@ -312,7 +429,9 @@ function renderResults() {
         </li>
       `;
     })
-    .join('');
+      .join('');
+
+  syncStateToUrl();
 }
 
 function openModal(item) {
@@ -410,27 +529,19 @@ async function fetchAllAuctionItems(keyword) {
   return allItems;
 }
 
-function syncKeywordToUrl(keyword) {
-  const url = new URL(window.location.href);
-  if (keyword) {
-    url.searchParams.set('keyword', keyword);
-  } else {
-    url.searchParams.delete('keyword');
-  }
-  window.history.replaceState({}, '', url);
-}
-
 async function runSearch(keyword, pushToUrl = true) {
   state.keyword = keyword;
   state.items = [];
-  state.categoryFilter = 'all';
   statusEl.textContent = '검색 중입니다…';
   setEmpty('검색 중입니다…');
   closeModal();
-  if (pushToUrl) syncKeywordToUrl(keyword);
+  if (pushToUrl) {
+    syncStateToUrl();
+  }
 
   try {
     const items = await fetchAllAuctionItems(keyword);
+    addRecentSearch(keyword);
     if (!items.length) {
       statusEl.textContent = '검색 결과가 없습니다.';
       setEmpty('검색 결과가 없습니다.');
@@ -439,6 +550,7 @@ async function runSearch(keyword, pushToUrl = true) {
 
     state.items = items;
     renderResults();
+    syncStateToUrl();
     statusEl.textContent = `"${keyword}" 검색 결과입니다.`;
   } catch (error) {
     statusEl.textContent = `오류: ${error.message}`;
@@ -460,6 +572,23 @@ form.addEventListener('submit', async (event) => {
 
 sortSelectEl.addEventListener('change', () => {
   saveSortPreference();
+  syncStateToUrl();
+  if (!state.items.length) return;
+  renderResults();
+});
+
+priceMinEl.addEventListener('change', () => {
+  state.priceMin = parsePrice(priceMinEl.value);
+  setPriceInputsFromState();
+  syncStateToUrl();
+  if (!state.items.length) return;
+  renderResults();
+});
+
+priceMaxEl.addEventListener('change', () => {
+  state.priceMax = parsePrice(priceMaxEl.value);
+  setPriceInputsFromState();
+  syncStateToUrl();
   if (!state.items.length) return;
   renderResults();
 });
@@ -484,10 +613,27 @@ favoriteListEl.addEventListener('click', (event) => {
   }
 });
 
+if (recentListEl) {
+  recentListEl.addEventListener('click', (event) => {
+    const chip = event.target.closest('[data-recent]');
+    if (!chip) return;
+    const keyword = chip.dataset.recent;
+    if (event.target.closest('.pill-remove')) {
+      removeRecentSearch(keyword);
+      return;
+    }
+    if (event.target.closest('.recent-open')) {
+      keywordInput.value = keyword;
+      runSearch(keyword, true);
+    }
+  });
+}
+
 categoryFilterListEl.addEventListener('click', (event) => {
   const button = event.target.closest('[data-category]');
   if (!button) return;
   state.categoryFilter = button.dataset.category;
+  syncStateToUrl();
   renderResults();
 });
 
@@ -509,10 +655,12 @@ document.addEventListener('keydown', (event) => {
 });
 
 state.favorites = loadFavorites();
+state.recentSearches = loadRecentSearches();
 sortSelectEl.value = loadSortPreference();
 renderFavorites();
+renderRecentSearches();
 
-const initialKeyword = new URL(window.location.href).searchParams.get('keyword');
+const initialKeyword = applyUrlState();
 if (initialKeyword) {
   keywordInput.value = initialKeyword;
   runSearch(initialKeyword, false);
