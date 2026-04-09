@@ -24,13 +24,18 @@
             <input id="keyword" name="keyword" type="text" placeholder="예: 롱소드" autocomplete="off" />
             <button type="submit">검색</button>
           </div>
-          <label class="search-label" for="option-type">옵션명</label>
-          <input id="option-type" name="option-type" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
-          <label class="search-label" for="option-value">옵션값</label>
-          <input id="option-value" name="option-value" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
-          <div class="option-actions">
-            <button id="option-reset" class="filter-reset option-reset" type="button">옵션 초기화</button>
-          </div>
+          <details class="advanced-filters">
+            <summary>옵션</summary>
+            <div class="advanced-filters-body">
+              <label class="search-label" for="option-type">옵션명</label>
+              <input id="option-type" name="option-type" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
+              <label class="search-label" for="option-value">옵션값</label>
+              <input id="option-value" name="option-value" type="text" placeholder="최대 3개, 공백으로 구분" autocomplete="off" />
+              <div class="option-actions">
+                <button id="option-reset" class="filter-reset option-reset" type="button">옵션 초기화</button>
+              </div>
+            </div>
+          </details>
         </form>
         <p id="status" class="status">검색어를 입력해 주세요.</p>
         <div class="favorites-panel">

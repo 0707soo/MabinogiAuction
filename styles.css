@@ -45,13 +45,13 @@ body.modal-open {
 }
 
 .shell {
-  width: min(980px, calc(100vw - 32px));
+  width: min(860px, calc(100vw - 24px));
   margin: 0 auto;
-  padding: 40px 0 56px;
+  padding: 28px 0 40px;
 }
 
 .hero {
-  margin-bottom: 28px;
+  margin-bottom: 18px;
 }
 
 .hero-topline {
@@ -81,7 +81,7 @@ body.modal-open {
 
 h1 {
   margin: 0;
-  font-size: clamp(2.1rem, 6vw, 4.2rem);
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
   line-height: 0.95;
   letter-spacing: -0.04em;
 }
@@ -97,9 +97,9 @@ h1 {
 .results-card,
 .modal-panel {
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: 18px;
   background: var(--panel);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.10);
 }
 
 .search-card,
@@ -108,56 +108,86 @@ h1 {
 }
 
 .search-card {
-  padding: 22px;
+  padding: 16px;
 }
 
 .search-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .search-label {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.84rem;
 }
 
 .search-row {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .option-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .option-reset {
-  padding: 8px 10px;
-  font-size: 0.8rem;
+  padding: 7px 9px;
+  font-size: 0.76rem;
 }
 
 .search-form > input[type="text"] {
   width: 100%;
+  margin-top: 2px;
+}
+
+.advanced-filters {
   margin-top: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  overflow: clip;
+}
+
+.advanced-filters > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.advanced-filters > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-filters[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.advanced-filters-body {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 10px;
 }
 
 input {
   flex: 1;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 11px 12px;
   border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
 }
 
 button {
-  padding: 14px 18px;
+  padding: 11px 14px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: var(--button-text);
   font: inherit;
@@ -166,14 +196,14 @@ button {
 }
 
 .status {
-  margin: 14px 0 0;
+  margin: 10px 0 0;
   color: var(--muted);
-  font-size: 0.94rem;
+  font-size: 0.86rem;
 }
 
 .favorites-panel {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
@@ -188,18 +218,18 @@ button {
 .favorites-label,
 .category-filter-label {
   color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.favorite-add {
-  padding: 6px 10px;
-  border-radius: 10px;
   font-size: 0.8rem;
 }
 
+.favorite-add {
+  padding: 5px 8px;
+  border-radius: 9px;
+  font-size: 0.74rem;
+}
+
 .filter-reset {
-  padding: 8px 10px;
-  border-radius: 10px;
+  padding: 7px 9px;
+  border-radius: 9px;
   background: var(--item-bg);
   color: var(--text);
   border: 1px solid var(--line);
@@ -209,18 +239,18 @@ button {
 .category-filter-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .saved-filters-panel {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
 .recent-panel {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .favorite-chip {
@@ -232,13 +262,13 @@ button {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 5px;
+  padding: 5px 9px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--item-bg);
   color: var(--text);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
 }
 
 .pill.active {
@@ -247,20 +277,20 @@ button {
 }
 
 .pill-remove {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--item-bg);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   line-height: 1;
 }
 
 .results-card {
-  margin-top: 18px;
-  padding: 22px;
+  margin-top: 14px;
+  padding: 16px;
 }
 
 .results-head {
@@ -273,29 +303,29 @@ button {
 
 .results-head h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.98rem;
 }
 
 .results-tools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .price-range {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 3px 7px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--input-bg);
 }
 
 .price-input {
-  width: 96px;
-  padding: 7px 8px;
+  width: 82px;
+  padding: 6px 7px;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -313,13 +343,13 @@ button {
 
 .sort-label {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .sort-select {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
@@ -327,7 +357,7 @@ button {
 
 .result-count {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.84rem;
 }
 
 .result-count strong {
@@ -336,18 +366,18 @@ button {
 }
 
 .result-summary {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .results-table-head {
   display: grid;
   grid-template-columns: minmax(0, 2.2fr) minmax(110px, 0.8fr) minmax(80px, 0.5fr) minmax(150px, 0.9fr) minmax(130px, 0.9fr);
-  gap: 12px;
-  padding: 0 14px 10px;
+  gap: 10px;
+  padding: 0 12px 8px;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.76rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -368,7 +398,7 @@ button {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .results > li {
@@ -386,9 +416,9 @@ button {
 }
 
 .result-item {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--item-bg);
   transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
 }
@@ -407,21 +437,21 @@ button {
 .result-row {
   display: grid;
   grid-template-columns: minmax(0, 2.2fr) minmax(110px, 0.8fr) minmax(80px, 0.5fr) minmax(150px, 0.9fr) minmax(130px, 0.9fr);
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .result-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
 .result-title {
   margin: 0;
-  font-size: 0.98rem;
-  line-height: 1.45;
+  font-size: 0.92rem;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -429,7 +459,7 @@ button {
 
 .result-subtitle {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 .result-cell,
@@ -438,7 +468,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .result-cell.muted {
@@ -454,11 +484,11 @@ button {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border: 1px solid rgba(125, 211, 252, 0.28);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -468,19 +498,19 @@ button {
 
 
 .footer {
-  margin-top: 16px;
+  margin-top: 12px;
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.78rem;
 }
 
 .empty,
 .empty-state {
   display: grid;
   place-items: center;
-  min-height: 120px;
+  min-height: 88px;
   color: var(--muted);
   border: 1px dashed rgba(255,255,255,0.08);
-  border-radius: 18px;
+  border-radius: 14px;
 }
 
 .modal.hidden {
@@ -493,7 +523,7 @@ button {
   z-index: 30;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 14px;
 }
 
 .modal-backdrop {
@@ -506,7 +536,7 @@ button {
   position: relative;
   width: min(760px, 100%);
   max-height: min(88vh, 900px);
-  padding: 22px;
+  padding: 16px;
   overflow: auto;
   background: var(--modal-bg);
 }
@@ -526,7 +556,7 @@ button {
 
 .modal-title {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   line-height: 1.4;
 }
 
