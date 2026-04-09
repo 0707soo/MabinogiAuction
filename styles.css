@@ -176,9 +176,9 @@ button {
 }
 
 .favorite-add {
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 0.84rem;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
 }
 
 .favorite-list,
@@ -192,19 +192,19 @@ button {
 .favorite-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--item-bg);
   color: var(--text);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .pill.active {
@@ -213,14 +213,14 @@ button {
 }
 
 .pill-remove {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--item-bg);
   color: var(--muted);
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
@@ -610,6 +610,16 @@ button {
   .pill-remove,
   .favorite-open,
   .category-chip { width: auto; white-space: nowrap; }
+
+  .pill {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+  }
+
+  .pill-remove {
+    width: 22px;
+    height: 22px;
+  }
   .result-item { padding: 10px 12px; }
   .result-title { font-size: 0.94rem; }
   .result-cell,
