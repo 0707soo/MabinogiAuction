@@ -22,6 +22,10 @@ const favoriteListEl = document.getElementById('favorite-list');
 const recentListEl = document.getElementById('recent-list');
 const savedFilterListEl = document.getElementById('saved-filter-list');
 const categoryFilterListEl = document.getElementById('category-filter-list');
+const inspectorTitleEl = document.getElementById('inspector-title');
+const inspectorSummaryEl = document.getElementById('inspector-summary');
+const inspectorColorsEl = document.getElementById('inspector-colors');
+const inspectorOptionsEl = document.getElementById('inspector-options');
 const modalEl = document.getElementById('item-modal');
 const modalBackdropEl = document.getElementById('modal-backdrop');
 const modalCloseEl = document.getElementById('modal-close');
@@ -47,6 +51,8 @@ const state = {
   favorites: [],
   recentSearches: [],
   savedFilters: [],
+  visibleItems: [],
+  selectedIndex: 0,
 };
 
 const DEFAULT_EXCLUSIONS = ['도면', '옷본'];
@@ -655,14 +661,84 @@ function setEmpty(message) {
   resultsEl.innerHTML = `<li class="empty">${escapeHtml(message)}</li>`;
   resultCountEl.textContent = '0건';
   resultsCardEl.classList.remove('qty-off');
+  state.visibleItems = [];
+  state.selectedIndex = 0;
   renderOptionFieldList([]);
   renderCategoryFilters([]);
+  renderInspector(null);
   resultsCardEl.dataset.filtered = '0';
+}
+
+function renderInspector(item) {
+  if (!inspectorTitleEl || !inspectorSummaryEl || !inspectorColorsEl || !inspectorOptionsEl) return;
+
+  if (!item) {
+    inspectorTitleEl.textContent = '아직 선택된 항목이 없습니다.';
+    inspectorSummaryEl.textContent = '결과에서 항목을 선택하면 상세가 표시됩니다.';
+    inspectorSummaryEl.classList.add('empty-state');
+    inspectorColorsEl.classList.add('empty-state');
+    inspectorColorsEl.textContent = '색상 정보가 없습니다.';
+    inspectorOptionsEl.innerHTML = '<li class="empty-state">옵션 정보가 없습니다.</li>';
+    return;
+  }
+
+  const itemName = item.item_display_name || item.item_name || '이름 없음';
+  const category = item.auction_item_category || '분류 없음';
+  const count = item.item_count ?? 0;
+  const price = item.auction_price_per_unit ?? 0;
+  const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
+  const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
+  const { colorOptions, otherOptions } = splitOptions(item.item_option || []);
+
+  inspectorTitleEl.textContent = itemName;
+  inspectorSummaryEl.classList.remove('empty-state');
+  inspectorSummaryEl.innerHTML = `
+    <div class="inspector-summary-grid">
+      <span><strong>분류</strong>${escapeHtml(category)}</span>
+      <span><strong>가격</strong>${escapeHtml(formatPrice(price))}</span>
+      <span><strong>수량</strong>${escapeHtml(String(count > 1 ? count : 1))}</span>
+      <span><strong>만료</strong>${escapeHtml(expire)} · ${escapeHtml(expireAbsolute)} KST</span>
+    </div>
+  `;
+
+  if (colorOptions.length) {
+    inspectorColorsEl.classList.remove('empty-state');
+    inspectorColorsEl.innerHTML = colorOptions
+      .map((option) => {
+        const rgb = parseRgb(option.option_value);
+        const swatchStyle = rgb ? `style="background: rgb(${rgb.join(',')});"` : '';
+        const swatchText = option.option_value || '-';
+        return `
+          <div class="color-chip">
+            <span class="color-swatch" ${swatchStyle}></span>
+            <div class="color-copy">
+              <strong>${escapeHtml(option.option_sub_type || option.option_type)}</strong>
+              <span>${escapeHtml(swatchText)}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  } else {
+    inspectorColorsEl.classList.add('empty-state');
+    inspectorColorsEl.textContent = '색상 정보가 없습니다.';
+  }
+
+  if (otherOptions.length) {
+    inspectorOptionsEl.innerHTML = otherOptions
+      .map((option) => `<li class="option-item">${escapeHtml(formatOption(option))}</li>`)
+      .join('');
+  } else {
+    inspectorOptionsEl.innerHTML = '<li class="empty-state">옵션 정보가 없습니다.</li>';
+  }
 }
 
 function renderResults() {
   const visibleItems = getVisibleItems();
   const items = getSortedItems(visibleItems);
+  state.visibleItems = items;
+  if (state.selectedIndex >= items.length) state.selectedIndex = 0;
+  const selectedItem = items[state.selectedIndex] || null;
   const showQuantity = getQuantityColumnEnabled(items);
   resultsCardEl.classList.toggle('qty-off', !showQuantity);
   const activeFilters = [
@@ -688,7 +764,7 @@ function renderResults() {
       const detailAvailable = hasDetail(item);
       const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty-cell">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty-cell muted">-</span>' : '';
       const titleSubtitle = itemRawName ? `<span class="result-subtitle">${escapeHtml(itemRawName)}</span>` : '';
-      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '';
+      const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '<span class="detail-badge muted-badge">간단 정보</span>';
       const row = `
         <span class="result-title-wrap">
           <span class="result-title">${escapeHtml(itemName)}</span>
@@ -701,20 +777,12 @@ function renderResults() {
         <span class="result-price price-cell">${escapeHtml(formatPrice(price))}</span>
       `;
 
-      if (!detailAvailable) {
-        return `
-          <li>
-            <div class="result-item result-item-static">
-              <div class="result-row">${row}</div>
-            </div>
-          </li>
-        `;
-      }
+      const isSelected = state.selectedIndex === index ? 'is-selected' : '';
 
       return `
         <li>
           <button class="result-button" type="button" data-index="${index}">
-            <div class="result-item result-item-detail">
+            <div class="result-item result-item-detail ${isSelected}">
               <div class="result-row">${row}</div>
             </div>
           </button>
@@ -722,6 +790,8 @@ function renderResults() {
       `;
     })
       .join('');
+
+  renderInspector(selectedItem);
 
   syncStateToUrl();
 }
@@ -872,6 +942,7 @@ async function runSearch(keyword, pushToUrl = true) {
     }
 
     state.items = items;
+    state.selectedIndex = 0;
     renderResults();
     syncStateToUrl();
     statusEl.textContent = `"${keyword}" 검색 결과입니다.`;
@@ -1046,9 +1117,10 @@ resultsEl.addEventListener('click', (event) => {
   const button = event.target.closest('.result-button');
   if (!button) return;
   const index = Number(button.dataset.index);
-  const item = getSortedItems(state.items.filter((entry) => matchesDefaultExclusions(entry, state.keyword)))[index];
-  if (!item || !hasDetail(item)) return;
-  openModal(item);
+  const item = state.visibleItems[index];
+  if (!item) return;
+  state.selectedIndex = index;
+  renderResults();
 });
 
 modalCloseEl.addEventListener('click', closeModal);

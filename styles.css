@@ -45,7 +45,7 @@ body.modal-open {
 }
 
 .shell {
-  width: min(1220px, calc(100vw - 24px));
+  width: min(1440px, calc(100vw - 24px));
   margin: 0 auto;
   padding: 24px 0 36px;
 }
@@ -314,7 +314,7 @@ button {
 
 .results-layout {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 270px minmax(0, 1.08fr) 360px;
   gap: 18px;
 }
 
@@ -331,6 +331,81 @@ button {
 
 .results-main {
   min-width: 0;
+}
+
+.results-inspector {
+  min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inspector-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspector-kicker {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.results-inspector h3,
+.inspector-section h4 {
+  margin: 0;
+}
+
+.results-inspector h3 {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.inspector-summary {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--item-bg);
+}
+
+.inspector-summary-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.inspector-summary-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.inspector-summary-grid strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inspector-section h4 {
+  font-size: 0.88rem;
+  color: var(--muted);
 }
 
 .results-head {
@@ -470,6 +545,12 @@ button {
   transform: translateY(-1px);
 }
 
+.result-item.is-selected {
+  border-color: rgba(125, 211, 252, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+  background: color-mix(in srgb, var(--item-bg) 70%, var(--accent) 8%);
+}
+
 .result-item-static {
   cursor: default;
 }
@@ -530,6 +611,11 @@ button {
   color: var(--accent);
   font-size: 0.7rem;
   font-weight: 600;
+}
+
+.muted-badge {
+  border-color: var(--line);
+  color: var(--muted);
 }
 
 .result-item-static .result-row {
@@ -699,6 +785,12 @@ button {
   .results-sidebar {
     padding-right: 0;
     border-right: 0;
+  }
+
+  .results-inspector {
+    padding-left: 0;
+    border-left: 0;
+    position: static;
   }
 
   .results-table-head {
