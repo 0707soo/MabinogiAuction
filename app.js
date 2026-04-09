@@ -10,7 +10,8 @@ const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
 const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
-const optionKeywordEl = document.getElementById('option-keyword');
+const optionTypeEl = document.getElementById('option-type');
+const optionValueEl = document.getElementById('option-value');
 const favoriteAddEl = document.getElementById('favorite-add');
 const favoriteListEl = document.getElementById('favorite-list');
 const recentListEl = document.getElementById('recent-list');
@@ -32,7 +33,8 @@ const state = {
   categoryFilter: 'all',
   priceMin: '',
   priceMax: '',
-  optionQuery: '',
+  optionTypeQuery: '',
+  optionValueQuery: '',
   favorites: [],
   recentSearches: [],
 };
@@ -130,23 +132,29 @@ function parseRgb(value) {
   return parts.map((part) => Math.max(0, Math.min(255, part)));
 }
 
-function getOptionSearchText(item) {
-  const optionParts = (item.item_option || [])
-    .flatMap((option) => [
-      option?.option_type,
-      option?.option_sub_type,
-      option?.option_value,
-      option?.option_value2,
-      option?.option_desc,
-    ])
-    .filter(Boolean);
-  return optionParts.join(' ').toLowerCase();
+function getOptionTypeSearchText(item) {
+  return (item.item_option || [])
+    .flatMap((option) => [option?.option_type, option?.option_sub_type])
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
 
-function matchesOptionQuery(item, query) {
-  const value = String(query || '').trim().toLowerCase();
-  if (!value) return true;
-  return getOptionSearchText(item).includes(value);
+function getOptionValueSearchText(item) {
+  return (item.item_option || [])
+    .flatMap((option) => [option?.option_value, option?.option_value2, option?.option_desc])
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function matchesOptionQueries(item, typeQuery, valueQuery) {
+  const typeValue = String(typeQuery || '').trim().toLowerCase();
+  const optionValue = String(valueQuery || '').trim().toLowerCase();
+
+  if (typeValue && !getOptionTypeSearchText(item).includes(typeValue)) return false;
+  if (optionValue && !getOptionValueSearchText(item).includes(optionValue)) return false;
+  return true;
 }
 
 function hasDetail(item) {
@@ -348,8 +356,11 @@ function syncStateToUrl() {
   if (state.priceMax) params.set('maxPrice', state.priceMax);
   else params.delete('maxPrice');
 
-  if (state.optionQuery) params.set('option', state.optionQuery);
-  else params.delete('option');
+  if (state.optionTypeQuery) params.set('optionType', state.optionTypeQuery);
+  else params.delete('optionType');
+
+  if (state.optionValueQuery) params.set('optionValue', state.optionValueQuery);
+  else params.delete('optionValue');
 
   window.history.replaceState({}, '', url);
 }
@@ -361,15 +372,18 @@ function applyUrlState() {
   const category = params.get('category') || 'all';
   const minPrice = parsePrice(params.get('minPrice'));
   const maxPrice = parsePrice(params.get('maxPrice'));
-  const optionQuery = params.get('option') || '';
+  const optionTypeQuery = params.get('optionType') || '';
+  const optionValueQuery = params.get('optionValue') || '';
 
   sortSelectEl.value = sort;
   state.categoryFilter = category;
   state.priceMin = minPrice;
   state.priceMax = maxPrice;
-  state.optionQuery = optionQuery;
+  state.optionTypeQuery = optionTypeQuery;
+  state.optionValueQuery = optionValueQuery;
   setPriceInputsFromState();
-  if (optionKeywordEl) optionKeywordEl.value = optionQuery;
+  if (optionTypeEl) optionTypeEl.value = optionTypeQuery;
+  if (optionValueEl) optionValueEl.value = optionValueQuery;
 
   return keyword;
 }
@@ -382,7 +396,7 @@ function getVisibleItems() {
     if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
     return true;
   });
-  const filteredByOption = filteredByPrice.filter((item) => matchesOptionQuery(item, state.optionQuery));
+  const filteredByOption = filteredByPrice.filter((item) => matchesOptionQueries(item, state.optionTypeQuery, state.optionValueQuery));
   return state.categoryFilter === 'all'
     ? filteredByOption
     : filteredByOption.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
@@ -621,9 +635,18 @@ priceMaxEl.addEventListener('change', () => {
   renderResults();
 });
 
-if (optionKeywordEl) {
-  optionKeywordEl.addEventListener('input', () => {
-    state.optionQuery = optionKeywordEl.value.trim();
+if (optionTypeEl) {
+  optionTypeEl.addEventListener('input', () => {
+    state.optionTypeQuery = optionTypeEl.value.trim();
+    syncStateToUrl();
+    if (!state.items.length) return;
+    renderResults();
+  });
+}
+
+if (optionValueEl) {
+  optionValueEl.addEventListener('input', () => {
+    state.optionValueQuery = optionValueEl.value.trim();
     syncStateToUrl();
     if (!state.items.length) return;
     renderResults();
