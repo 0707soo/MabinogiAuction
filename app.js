@@ -28,7 +28,6 @@ const colorGMinEl = document.getElementById('color-g-min');
 const colorGMaxEl = document.getElementById('color-g-max');
 const colorBMinEl = document.getElementById('color-b-min');
 const colorBMaxEl = document.getElementById('color-b-max');
-const colorResetEl = document.getElementById('color-reset');
 const inspectorTitleEl = document.getElementById('inspector-title');
 const inspectorSummaryEl = document.getElementById('inspector-summary');
 const inspectorColorsEl = document.getElementById('inspector-colors');
@@ -268,9 +267,11 @@ function matchesOptionFilters(item) {
   const field = state.optionField || 'all';
   const criteria = normalizeOptionNumberCriteria();
   const hasValueConstraint = criteria.min !== null || criteria.max !== null;
-  if (field === 'all' && !hasValueConstraint) return true;
-
-  return (item.item_option || []).some((option) => optionMatchesCriteria(option, field, criteria));
+  const matchesOption = field === 'all' && !hasValueConstraint
+    ? true
+    : (item.item_option || []).some((option) => optionMatchesCriteria(option, field, criteria));
+  if (!matchesOption) return false;
+  return matchesColorFilter(item);
 }
 
 function formatOption(option) {
@@ -357,23 +358,6 @@ function matchesColorFilter(item) {
     const [r, g, b] = rgb;
     return r >= minR && r <= maxR && g >= minG && g <= maxG && b >= minB && b <= maxB;
   });
-}
-
-function resetColorFilter() {
-  state.colorRMin = '';
-  state.colorRMax = '';
-  state.colorGMin = '';
-  state.colorGMax = '';
-  state.colorBMin = '';
-  state.colorBMax = '';
-  if (colorRMinEl) colorRMinEl.value = '';
-  if (colorRMaxEl) colorRMaxEl.value = '';
-  if (colorGMinEl) colorGMinEl.value = '';
-  if (colorGMaxEl) colorGMaxEl.value = '';
-  if (colorBMinEl) colorBMinEl.value = '';
-  if (colorBMaxEl) colorBMaxEl.value = '';
-  syncStateToUrl();
-  if (state.items.length) renderResults();
 }
 
 function loadFavorites() {
@@ -790,10 +774,9 @@ function getVisibleItems() {
     return true;
   });
   const filteredByOption = filteredByPrice.filter((item) => matchesOptionFilters(item));
-  const filteredByColor = filteredByOption.filter((item) => matchesColorFilter(item));
   return state.categoryFilter === 'all'
-    ? filteredByColor
-    : filteredByColor.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
+    ? filteredByOption
+    : filteredByOption.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
 }
 
 function getItemsBeforeOptionFilter() {
@@ -804,10 +787,9 @@ function getItemsBeforeOptionFilter() {
     if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
     return true;
   });
-  const filteredByColor = filteredByPrice.filter((item) => matchesColorFilter(item));
   return state.categoryFilter === 'all'
-    ? filteredByColor
-    : filteredByColor.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
+    ? filteredByPrice
+    : filteredByPrice.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
 }
 
 function matchesDefaultExclusions(item, keyword) {
@@ -1354,10 +1336,6 @@ bindColorInput(colorGMinEl, 'colorGMin');
 bindColorInput(colorGMaxEl, 'colorGMax');
 bindColorInput(colorBMinEl, 'colorBMin');
 bindColorInput(colorBMaxEl, 'colorBMax');
-
-if (colorResetEl) {
-  colorResetEl.addEventListener('click', resetColorFilter);
-}
 
 if (savedFilterListEl) {
   savedFilterListEl.addEventListener('click', (event) => {
