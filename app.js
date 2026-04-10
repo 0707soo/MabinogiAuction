@@ -402,12 +402,7 @@ function loadSavedFilters() {
         optionMatchAny: Boolean(entry.optionMatchAny),
         optionFilters: Array.isArray(entry.optionFilters) && entry.optionFilters.length
           ? entry.optionFilters.slice(0, 5).map(createOptionFilter)
-          : [{
-            field: entry.optionField || 'all',
-            mode: entry.optionMode || 'range',
-            min: String(entry.optionMin ?? ''),
-            max: String(entry.optionMax ?? ''),
-            }],
+          : [createOptionFilter()],
         priceMin: String(entry.priceMin || ''),
         priceMax: String(entry.priceMax || ''),
       }))
@@ -702,11 +697,7 @@ function applyUrlState() {
     }
   }
   if (!optionFilters.length) {
-    const optionField = params.get('optionField') || 'all';
-    const optionMode = params.get('optionMode') || 'range';
-    const optionMin = parsePrice(params.get('optionMin'));
-    const optionMax = parsePrice(params.get('optionMax'));
-    optionFilters = [createOptionFilter({ field: optionField, mode: optionMode, min: optionMin, max: optionMax })];
+    optionFilters = [createOptionFilter()];
   }
 
   sortSelectEl.value = sort;
