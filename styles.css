@@ -251,6 +251,33 @@ button {
   font-size: 0.8rem;
 }
 
+.sidebar-section {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sidebar-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-section[open] > summary {
+  margin-bottom: 8px;
+}
+
+.sidebar-section > summary .filter-reset,
+.sidebar-section > summary .favorite-add {
+  flex: 0 0 auto;
+}
+
 .favorite-add {
   padding: 5px 8px;
   border-radius: 9px;
@@ -275,6 +302,10 @@ button {
 
 .color-filter-wrap {
   margin-top: -2px;
+}
+
+.color-filter-wrap summary {
+  align-items: center;
 }
 
 .color-range-grid {
