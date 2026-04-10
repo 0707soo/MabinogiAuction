@@ -623,10 +623,6 @@ function getSortedItems(items) {
   });
 }
 
-function getQuantityColumnEnabled(items) {
-  return items.some((item) => (item.item_count ?? 1) > 1);
-}
-
 function isCompactLayout() {
   try {
     return window.matchMedia('(max-width: 1240px)').matches;
@@ -833,7 +829,7 @@ function renderInspector(item) {
     <div class="inspector-summary-grid">
       <span><strong>분류</strong>${escapeHtml(category)}</span>
       <span><strong>가격</strong>${escapeHtml(formatPrice(price))}</span>
-      <span><strong>수량</strong>${escapeHtml(String(count > 1 ? count : 1))}</span>
+      <span><strong>수량</strong>${escapeHtml(String(count > 0 ? count : 1))}</span>
       <span><strong>만료</strong>${escapeHtml(expire)} · ${escapeHtml(expireAbsolute)} KST</span>
     </div>
   `;
@@ -878,8 +874,7 @@ function renderResults({ refreshOptionFilters = true } = {}) {
   if (state.selectedIndex >= items.length) state.selectedIndex = 0;
   const selectedItem = items[state.selectedIndex] || null;
   const compactLayout = isCompactLayout();
-  const showQuantity = getQuantityColumnEnabled(items);
-  resultsCardEl.classList.toggle('qty-off', !showQuantity);
+  resultsCardEl.classList.remove('qty-off');
   const activeFilters = [
     state.categoryFilter !== 'all' ? '분류' : '',
     state.priceMin || state.priceMax ? '가격' : '',
@@ -906,7 +901,6 @@ function renderResults({ refreshOptionFilters = true } = {}) {
 
   if (!items.length) {
     if (!compactLayout) renderInspector(null);
-    resultsCardEl.classList.remove('qty-off');
     if (optionFiltersActive && itemsBeforeOptionFilter.length) {
       renderZeroResults('옵션 조건에 맞는 결과가 없습니다.', true);
     } else {
@@ -927,7 +921,7 @@ function renderResults({ refreshOptionFilters = true } = {}) {
       const expire = item.date_auction_expire ? formatExpire(item.date_auction_expire) : '만료 정보 없음';
       const expireAbsolute = item.date_auction_expire ? formatAbsoluteKST(item.date_auction_expire) : '만료 정보 없음';
       const detailAvailable = hasDetail(item);
-      const quantityCell = showQuantity && count > 1 ? `<span class="result-cell qty-cell">${escapeHtml(count)}</span>` : showQuantity ? '<span class="result-cell qty-cell muted">-</span>' : '';
+      const quantityCell = `<span class="result-cell qty-cell">${escapeHtml(String(count > 0 ? count : 1))}</span>`;
       const titleSubtitle = itemRawName ? `<span class="result-subtitle">${escapeHtml(itemRawName)}</span>` : '';
       const detailBadge = detailAvailable ? '<span class="detail-badge">상세 옵션</span>' : '<span class="detail-badge muted-badge">간단 정보</span>';
       const row = `
@@ -994,7 +988,7 @@ function openModal(item) {
   modalCategoryEl.textContent = category;
   modalTitleEl.textContent = itemName;
   modalPriceEl.textContent = `개당 가격 ${formatPrice(price)}`;
-  modalCountEl.textContent = count > 1 ? `수량 ${count}` : '수량 1';
+  modalCountEl.textContent = `수량 ${count > 0 ? count : 1}`;
   modalExpireEl.textContent = `만료 ${expire} · ${expireAbsolute} KST`;
 
   if (colorOptions.length) {
