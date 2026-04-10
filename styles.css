@@ -300,14 +300,6 @@ button {
   margin-top: 8px;
 }
 
-.color-filter-wrap {
-  margin-top: -2px;
-}
-
-.color-filter-wrap summary {
-  align-items: center;
-}
-
 .color-range-grid {
   display: grid;
   gap: 8px;
@@ -329,6 +321,12 @@ button {
 .color-range-row span {
   color: var(--muted);
   text-align: center;
+}
+
+.advanced-color-wrap {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 
 .saved-filters-panel {

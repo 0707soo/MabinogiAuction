@@ -506,7 +506,7 @@ function snapshotLabel(snapshot) {
   }
   if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
   if (snapshot.colorRMin || snapshot.colorRMax || snapshot.colorGMin || snapshot.colorGMax || snapshot.colorBMin || snapshot.colorBMax) {
-    parts.push(`RGB:R${snapshot.colorRMin || '0'}~${snapshot.colorRMax || '255'} G${snapshot.colorGMin || '0'}~${snapshot.colorGMax || '255'} B${snapshot.colorBMin || '0'}~${snapshot.colorBMax || '255'}`);
+    parts.push(`옵션:RGB R${snapshot.colorRMin || '0'}~${snapshot.colorRMax || '255'} G${snapshot.colorGMin || '0'}~${snapshot.colorGMax || '255'} B${snapshot.colorBMin || '0'}~${snapshot.colorBMax || '255'}`);
   }
   if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
   if (snapshot.sort && snapshot.sort !== 'registered') parts.push(`정렬:${snapshot.sort}`);
@@ -1035,10 +1035,22 @@ function resetOptionFilters() {
   state.optionMode = 'range';
   state.optionMin = '';
   state.optionMax = '';
+  state.colorRMin = '';
+  state.colorRMax = '';
+  state.colorGMin = '';
+  state.colorGMax = '';
+  state.colorBMin = '';
+  state.colorBMax = '';
   if (optionFieldEl) optionFieldEl.value = 'all';
   if (optionModeEl) optionModeEl.value = 'range';
   if (optionMinEl) optionMinEl.value = '';
   if (optionMaxEl) optionMaxEl.value = '';
+  if (colorRMinEl) colorRMinEl.value = '';
+  if (colorRMaxEl) colorRMaxEl.value = '';
+  if (colorGMinEl) colorGMinEl.value = '';
+  if (colorGMaxEl) colorGMaxEl.value = '';
+  if (colorBMinEl) colorBMinEl.value = '';
+  if (colorBMaxEl) colorBMaxEl.value = '';
   syncStateToUrl();
   if (state.items.length) renderResults();
 }

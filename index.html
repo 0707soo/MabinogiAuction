@@ -44,6 +44,18 @@
                 <input id="option-max" name="option-max" type="number" inputmode="numeric" placeholder="최대값" />
               </div>
 
+              <div class="color-filter-wrap advanced-color-wrap">
+                <div class="favorites-head">
+                  <span class="category-filter-label">RGB 범위</span>
+                  <button id="color-reset" class="filter-reset" type="button">초기화</button>
+                </div>
+                <div class="color-range-grid">
+                  <div class="color-range-row"><label>R</label><input id="color-r-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-r-max" type="number" inputmode="numeric" placeholder="255" /></div>
+                  <div class="color-range-row"><label>G</label><input id="color-g-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-g-max" type="number" inputmode="numeric" placeholder="255" /></div>
+                  <div class="color-range-row"><label>B</label><input id="color-b-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-b-max" type="number" inputmode="numeric" placeholder="255" /></div>
+                </div>
+              </div>
+
               <div class="option-actions">
                 <button id="option-reset" class="filter-reset option-reset" type="button">옵션 초기화</button>
               </div>
@@ -84,18 +96,6 @@
                 <span class="category-filter-label">분류</span>
               </summary>
               <div id="category-filter-list" class="category-filter-list"></div>
-            </details>
-
-            <details class="sidebar-section color-filter-wrap">
-              <summary>
-                <span class="category-filter-label">RGB 범위</span>
-                <button id="color-reset" class="filter-reset" type="button">초기화</button>
-              </summary>
-              <div class="color-range-grid">
-                <div class="color-range-row"><label>R</label><input id="color-r-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-r-max" type="number" inputmode="numeric" placeholder="255" /></div>
-                <div class="color-range-row"><label>G</label><input id="color-g-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-g-max" type="number" inputmode="numeric" placeholder="255" /></div>
-                <div class="color-range-row"><label>B</label><input id="color-b-min" type="number" inputmode="numeric" placeholder="0" /><span>~</span><input id="color-b-max" type="number" inputmode="numeric" placeholder="255" /></div>
-              </div>
             </details>
           </aside>
 
