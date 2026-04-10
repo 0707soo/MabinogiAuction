@@ -35,6 +35,8 @@ const modalTitleEl = document.getElementById('modal-title');
 const modalPriceEl = document.getElementById('modal-price');
 const modalCountEl = document.getElementById('modal-count');
 const modalExpireEl = document.getElementById('modal-expire');
+const modalColorsSectionEl = document.getElementById('modal-colors-section');
+const modalOptionsSectionEl = document.getElementById('modal-options-section');
 const modalColorsEl = document.getElementById('modal-colors');
 const modalOptionsEl = document.getElementById('modal-options');
 
@@ -996,6 +998,7 @@ function openModal(item) {
   modalExpireEl.textContent = `만료 ${expire} · ${expireAbsolute} KST`;
 
   if (colorOptions.length) {
+    if (modalColorsSectionEl) modalColorsSectionEl.hidden = false;
     modalColorsEl.classList.remove('empty-state');
     modalColorsEl.innerHTML = colorOptions
       .map((option) => {
@@ -1014,16 +1017,19 @@ function openModal(item) {
       })
       .join('');
   } else {
+    if (modalColorsSectionEl) modalColorsSectionEl.hidden = true;
     modalColorsEl.classList.add('empty-state');
-    modalColorsEl.textContent = '색상 정보가 없습니다.';
+    modalColorsEl.textContent = '';
   }
 
   if (otherOptions.length) {
+    if (modalOptionsSectionEl) modalOptionsSectionEl.hidden = false;
     modalOptionsEl.innerHTML = otherOptions
       .map((option) => `<li class="option-item">${escapeHtml(formatOption(option))}</li>`)
       .join('');
   } else {
-    modalOptionsEl.innerHTML = '<li class="empty-state">옵션 정보가 없습니다.</li>';
+    if (modalOptionsSectionEl) modalOptionsSectionEl.hidden = true;
+    modalOptionsEl.innerHTML = '';
   }
 
   modalEl.classList.remove('hidden');
