@@ -11,6 +11,7 @@ const sortSelectEl = document.getElementById('sort-select');
 const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
 const optionFilterListEl = document.getElementById('option-filter-list');
+const optionSummaryEl = document.getElementById('option-summary');
 const optionMatchAnyEl = document.getElementById('option-match-any');
 const optionAddEl = document.getElementById('option-add');
 const optionResetEl = document.getElementById('option-reset');
@@ -205,6 +206,19 @@ function getActiveOptionFilters() {
   });
 }
 
+function renderOptionSummary() {
+  if (!optionSummaryEl) return;
+  const active = getActiveOptionFilters();
+  if (!active.length) {
+    optionSummaryEl.textContent = '옵션 조건 없음';
+    return;
+  }
+  const joiner = state.optionMatchAny ? ' OR ' : ' AND ';
+  const labels = active.slice(0, 3).map(getOptionFilterLabel);
+  const rest = active.length > 3 ? ` 외 ${active.length - 3}` : '';
+  optionSummaryEl.textContent = `${active.length}개 조건, ${state.optionMatchAny ? 'OR' : 'AND'} · ${labels.join(joiner)}${rest}`;
+}
+
 function renderOptionFilterList(items) {
   if (!optionFilterListEl) return;
   const groups = buildOptionFieldGroups(items);
@@ -263,6 +277,7 @@ function renderOptionFilterList(items) {
 
   if (optionMatchAnyEl) optionMatchAnyEl.checked = Boolean(state.optionMatchAny);
   if (optionAddEl) optionAddEl.disabled = state.optionFilters.length >= 5;
+  renderOptionSummary();
 }
 
 function syncOptionFilterRowState(row, filter) {
