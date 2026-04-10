@@ -213,10 +213,10 @@ function renderOptionSummary() {
     optionSummaryEl.textContent = '옵션 조건 없음';
     return;
   }
-  const joiner = state.optionMatchAny ? ' OR ' : ' AND ';
-  const labels = active.slice(0, 3).map(getOptionFilterLabel);
-  const rest = active.length > 3 ? ` 외 ${active.length - 3}` : '';
-  optionSummaryEl.textContent = `${active.length}개 조건, ${state.optionMatchAny ? 'OR' : 'AND'} · ${labels.join(joiner)}${rest}`;
+  const mode = state.optionMatchAny ? 'OR' : 'AND';
+  const first = getOptionFilterLabel(active[0]);
+  const rest = active.length > 1 ? ` 외 ${active.length - 1}` : '';
+  optionSummaryEl.textContent = `${active.length}개 · ${mode} · ${first}${rest}`;
 }
 
 function renderOptionFilterList(items) {
@@ -276,7 +276,12 @@ function renderOptionFilterList(items) {
   });
 
   if (optionMatchAnyEl) optionMatchAnyEl.checked = Boolean(state.optionMatchAny);
-  if (optionAddEl) optionAddEl.disabled = state.optionFilters.length >= 5;
+  if (optionAddEl) {
+    optionAddEl.disabled = state.optionFilters.length >= 5;
+    optionAddEl.textContent = state.optionFilters.length >= 5
+      ? '조건 추가(5/5)'
+      : `조건 추가(${state.optionFilters.length}/5)`;
+  }
   renderOptionSummary();
 }
 
@@ -475,9 +480,7 @@ function snapshotLabel(snapshot) {
   const optionFilters = Array.isArray(snapshot.optionFilters) ? snapshot.optionFilters : [];
   const activeOptionFilters = optionFilters.filter((filter) => filter.field !== 'all' || filter.min || filter.max);
   if (activeOptionFilters.length) {
-    const sample = activeOptionFilters.slice(0, 2).map(getOptionFilterLabel);
-    const joiner = snapshot.optionMatchAny ? ' OR ' : ' AND ';
-    parts.push(`옵션:${sample.join(joiner)}${activeOptionFilters.length > 2 ? ` 외 ${activeOptionFilters.length - 2}` : ''}`);
+    parts.push(`옵션:${activeOptionFilters.length}개 ${snapshot.optionMatchAny ? 'OR' : 'AND'}`);
   }
   if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
   if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
