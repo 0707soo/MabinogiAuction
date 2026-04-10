@@ -136,14 +136,6 @@ function createOptionFilter(filter = {}) {
   };
 }
 
-function getColorOptionLabel(option) {
-  return [option?.option_sub_type || option?.option_type, option?.option_value].filter(Boolean).join(' ').trim();
-}
-
-function getColorOptionKey(option) {
-  return normalizeRgbString(option?.option_value) || '';
-}
-
 function getOptionFieldLabel(option) {
   return [option?.option_type, option?.option_sub_type].filter(Boolean).join(' ').trim();
 }
@@ -217,13 +209,22 @@ function renderOptionFilterList(items) {
   if (!optionFilterListEl) return;
   const groups = buildOptionFieldGroups(items);
   const fields = groups.flatMap((entry) => entry.fields);
-  state.optionFields = fields;
+  const selectedFields = state.optionFilters
+    .map((filter) => String(filter.field || '').trim())
+    .filter((field) => field && field !== 'all' && !fields.includes(field));
+  const allFields = [...fields, ...selectedFields];
+  state.optionFields = allFields;
 
   state.optionFilters = (state.optionFilters.length ? state.optionFilters : [createOptionFilter()]).slice(0, 5).map(createOptionFilter);
   if (!state.optionFilters.length) state.optionFilters = [createOptionFilter()];
 
   const optionOptions = [
     `<option value="all">전체</option>`,
+    selectedFields.length ? `
+      <optgroup label="선택된 조건">
+        ${selectedFields.map((field) => `<option value="${escapeHtml(field)}">${escapeHtml(field)}</option>`).join('')}
+      </optgroup>
+    ` : '',
     ...groups.map((entry) => `
       <optgroup label="${escapeHtml(entry.group)} · ${entry.fields.length}">
         ${entry.fields.map((field) => `<option value="${escapeHtml(field)}">${escapeHtml(field)}</option>`).join('')}
@@ -252,18 +253,28 @@ function renderOptionFilterList(items) {
   const rows = [...optionFilterListEl.querySelectorAll('.option-filter-row')];
   rows.forEach((row, index) => {
     const filter = state.optionFilters[index] || createOptionFilter();
-    const fieldEl = row.querySelector('[data-option-key="field"]');
-    const modeEl = row.querySelector('[data-option-key="mode"]');
-    const minEl = row.querySelector('[data-option-key="min"]');
-    const maxEl = row.querySelector('[data-option-key="max"]');
-    if (fieldEl) fieldEl.value = fields.includes(filter.field) ? filter.field : 'all';
-    if (modeEl) modeEl.value = filter.mode || 'range';
-    if (minEl) minEl.value = filter.min || '';
-    if (maxEl) maxEl.value = filter.max || '';
+    syncOptionFilterRowState(row, {
+      field: allFields.includes(filter.field) ? filter.field : 'all',
+      mode: filter.mode || 'range',
+      min: filter.min || '',
+      max: filter.max || '',
+    });
   });
 
   if (optionMatchAnyEl) optionMatchAnyEl.checked = Boolean(state.optionMatchAny);
   if (optionAddEl) optionAddEl.disabled = state.optionFilters.length >= 5;
+}
+
+function syncOptionFilterRowState(row, filter) {
+  if (!row) return;
+  const fieldEl = row.querySelector('[data-option-key="field"]');
+  const modeEl = row.querySelector('[data-option-key="mode"]');
+  const minEl = row.querySelector('[data-option-key="min"]');
+  const maxEl = row.querySelector('[data-option-key="max"]');
+  if (fieldEl) fieldEl.value = filter.field || 'all';
+  if (modeEl) modeEl.value = filter.mode || 'range';
+  if (minEl) minEl.value = filter.min || '';
+  if (maxEl) maxEl.value = filter.max || '';
 }
 
 function parseNumberInput(value) {
@@ -633,6 +644,11 @@ function parseOptionValue(key, value) {
   return String(value || '');
 }
 
+function updateOptionFilter(index, patch) {
+  const current = state.optionFilters[index] || createOptionFilter();
+  state.optionFilters[index] = createOptionFilter({ ...current, ...patch });
+}
+
 function setPriceInputsFromState() {
   if (priceMinEl) priceMinEl.value = state.priceMin;
   if (priceMaxEl) priceMaxEl.value = state.priceMax;
@@ -834,7 +850,7 @@ function renderInspector(item) {
   }
 }
 
-function renderResults() {
+function renderResults({ refreshOptionFilters = true } = {}) {
   const visibleItems = getVisibleItems();
   const items = getSortedItems(visibleItems);
   state.visibleItems = items;
@@ -851,7 +867,9 @@ function renderResults() {
   ].filter(Boolean);
   resultCountEl.innerHTML = `${items.length}건${activeFilters.length ? ` · <strong>${escapeHtml(activeFilters.join('/'))}</strong>` : ''}`;
   resultsCardEl.dataset.filtered = String(items.length);
-  renderOptionFilterList(getItemsBeforeOptionFilter());
+  if (refreshOptionFilters) {
+    renderOptionFilterList(getItemsBeforeOptionFilter());
+  }
   renderCategoryFilters(visibleItems);
 
   const optionFiltersActive = getActiveOptionFilters().length > 0;
@@ -958,7 +976,7 @@ function openModal(item) {
     modalColorsEl.classList.remove('empty-state');
     modalColorsEl.innerHTML = colorOptions
       .map((option) => {
-        const rgb = parseRgb(option.option_value);
+        const rgb = extractOptionRgb(option);
         const swatchStyle = rgb ? `style="background: rgb(${rgb.join(',')});"` : '';
         const swatchText = option.option_value || '-';
         return `
@@ -1113,10 +1131,10 @@ priceMaxEl.addEventListener('input', () => {
   renderResults();
 });
 
-function commitOptionFilters() {
+function commitOptionFilters({ refreshOptionFilters = false } = {}) {
   state.optionFilters = (state.optionFilters.length ? state.optionFilters : [createOptionFilter()]).slice(0, 5).map(createOptionFilter);
   syncStateToUrl();
-  if (state.items.length) renderResults();
+  if (state.items.length) renderResults({ refreshOptionFilters });
 }
 
 if (optionMatchAnyEl) {
@@ -1130,7 +1148,7 @@ if (optionAddEl) {
   optionAddEl.addEventListener('click', () => {
     if (state.optionFilters.length >= 5) return;
     state.optionFilters = [...state.optionFilters, createOptionFilter()];
-    commitOptionFilters();
+    commitOptionFilters({ refreshOptionFilters: true });
   });
 }
 
@@ -1141,9 +1159,8 @@ if (optionFilterListEl) {
     const index = Number(row.dataset.optionIndex);
     const key = event.target.dataset.optionKey;
     if (!Number.isInteger(index) || !key) return;
-    const current = state.optionFilters[index] || createOptionFilter();
-    state.optionFilters[index] = createOptionFilter({ ...current, [key]: parseOptionValue(key, event.target.value) });
-    commitOptionFilters();
+    updateOptionFilter(index, { [key]: parseOptionValue(key, event.target.value) });
+    commitOptionFilters({ refreshOptionFilters: false });
   });
 
   optionFilterListEl.addEventListener('change', (event) => {
@@ -1152,9 +1169,8 @@ if (optionFilterListEl) {
     const index = Number(row.dataset.optionIndex);
     const key = event.target.dataset.optionKey;
     if (!Number.isInteger(index) || !key) return;
-    const current = state.optionFilters[index] || createOptionFilter();
-    state.optionFilters[index] = createOptionFilter({ ...current, [key]: parseOptionValue(key, event.target.value) });
-    commitOptionFilters();
+    updateOptionFilter(index, { [key]: parseOptionValue(key, event.target.value) });
+    commitOptionFilters({ refreshOptionFilters: false });
   });
 
   optionFilterListEl.addEventListener('click', (event) => {
@@ -1169,7 +1185,7 @@ if (optionFilterListEl) {
     } else {
       state.optionFilters = state.optionFilters.filter((_, i) => i !== index);
     }
-    commitOptionFilters();
+    commitOptionFilters({ refreshOptionFilters: true });
   });
 }
 
