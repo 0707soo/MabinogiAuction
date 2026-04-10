@@ -196,6 +196,50 @@ h1 {
   font: inherit;
 }
 
+.option-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.option-filter-list {
+  display: grid;
+  gap: 8px;
+}
+
+.option-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 110px minmax(0, 1.4fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.option-filter-row .option-range-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.option-filter-row .option-remove {
+  white-space: nowrap;
+}
+
 .option-range-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -984,6 +1028,8 @@ button {
   .price-range { width: 100%; }
   .price-input { width: 100%; min-width: 0; }
   .option-range-grid { grid-template-columns: 1fr; }
+  .option-filter-row { grid-template-columns: 1fr; }
+  .option-filter-row .option-remove { width: auto; justify-self: end; }
   .favorite-add { width: auto; }
   .favorites-head,
   .category-filter-wrap,

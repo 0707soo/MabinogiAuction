@@ -10,10 +10,9 @@ const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
 const priceMinEl = document.getElementById('price-min');
 const priceMaxEl = document.getElementById('price-max');
-const optionFieldEl = document.getElementById('option-field');
-const optionModeEl = document.getElementById('option-mode');
-const optionMinEl = document.getElementById('option-min');
-const optionMaxEl = document.getElementById('option-max');
+const optionFilterListEl = document.getElementById('option-filter-list');
+const optionMatchAnyEl = document.getElementById('option-match-any');
+const optionAddEl = document.getElementById('option-add');
 const optionResetEl = document.getElementById('option-reset');
 const filterResetEl = document.getElementById('filter-reset');
 const filterSaveEl = document.getElementById('filter-save');
@@ -43,10 +42,8 @@ const state = {
   categoryFilter: 'all',
   priceMin: '',
   priceMax: '',
-  optionField: 'all',
-  optionMode: 'range',
-  optionMin: '',
-  optionMax: '',
+  optionFilters: [createOptionFilter()],
+  optionMatchAny: false,
   optionFields: [],
   favorites: [],
   recentSearches: [],
@@ -130,6 +127,15 @@ function splitOptions(options = []) {
   return { colorOptions, otherOptions };
 }
 
+function createOptionFilter(filter = {}) {
+  return {
+    field: filter.field || 'all',
+    mode: filter.mode || 'range',
+    min: String(filter.min ?? ''),
+    max: String(filter.max ?? ''),
+  };
+}
+
 function getColorOptionLabel(option) {
   return [option?.option_sub_type || option?.option_type, option?.option_value].filter(Boolean).join(' ').trim();
 }
@@ -184,29 +190,80 @@ function buildOptionFieldGroups(items = []) {
   }));
 }
 
-function renderOptionFieldList(items) {
-  if (!optionFieldEl) return;
+function getOptionFilterLabel(filter) {
+  const parts = [];
+  if (filter.field && filter.field !== 'all') parts.push(filter.field);
+  if (filter.min || filter.max || filter.mode === 'gte' || filter.mode === 'lte') {
+    const label = filter.mode === 'gte'
+      ? `이상 ${filter.min || '0'}`
+      : filter.mode === 'lte'
+        ? `이하 ${filter.max || '∞'}`
+        : `범위 ${filter.min || '0'}~${filter.max || '∞'}`;
+    parts.push(label);
+  }
+  return parts.length ? parts.join(' · ') : '옵션 조건';
+}
+
+function getActiveOptionFilters() {
+  return (state.optionFilters || []).filter((filter) => {
+    const field = String(filter.field || 'all');
+    const min = String(filter.min || '');
+    const max = String(filter.max || '');
+    return field !== 'all' || min !== '' || max !== '';
+  });
+}
+
+function renderOptionFilterList(items) {
+  if (!optionFilterListEl) return;
   const groups = buildOptionFieldGroups(items);
   const fields = groups.flatMap((entry) => entry.fields);
   state.optionFields = fields;
 
-  const current = fields.includes(state.optionField) ? state.optionField : 'all';
-  if (current !== state.optionField) state.optionField = current;
+  state.optionFilters = (state.optionFilters.length ? state.optionFilters : [createOptionFilter()]).slice(0, 5).map(createOptionFilter);
+  if (!state.optionFilters.length) state.optionFilters = [createOptionFilter()];
 
-  const allOptions = [
-    `<option value="all" ${state.optionField === 'all' ? 'selected' : ''}>전체</option>`,
+  const optionOptions = [
+    `<option value="all">전체</option>`,
     ...groups.map((entry) => `
       <optgroup label="${escapeHtml(entry.group)} · ${entry.fields.length}">
-        ${entry.fields.map((field) => {
-          const selected = state.optionField === field ? 'selected' : '';
-          return `<option value="${escapeHtml(field)}" ${selected}>${escapeHtml(field)}</option>`;
-        }).join('')}
+        ${entry.fields.map((field) => `<option value="${escapeHtml(field)}">${escapeHtml(field)}</option>`).join('')}
       </optgroup>
     `),
-  ];
+  ].join('');
 
-  optionFieldEl.innerHTML = allOptions.join('');
-  optionFieldEl.disabled = fields.length === 0;
+  optionFilterListEl.innerHTML = state.optionFilters
+    .map((filter, index) => `
+      <div class="option-filter-row" data-option-index="${index}">
+        <select class="option-filter-field" data-option-key="field">${optionOptions}</select>
+        <select class="option-filter-mode" data-option-key="mode">
+          <option value="range">범위</option>
+          <option value="gte">이상</option>
+          <option value="lte">이하</option>
+        </select>
+        <div class="option-range-grid">
+          <input class="option-filter-min" data-option-key="min" type="number" inputmode="numeric" placeholder="최소값" />
+          <input class="option-filter-max" data-option-key="max" type="number" inputmode="numeric" placeholder="최대값" />
+        </div>
+        <button class="filter-reset option-remove" type="button" ${state.optionFilters.length > 1 ? '' : 'disabled'}>삭제</button>
+      </div>
+    `)
+    .join('');
+
+  const rows = [...optionFilterListEl.querySelectorAll('.option-filter-row')];
+  rows.forEach((row, index) => {
+    const filter = state.optionFilters[index] || createOptionFilter();
+    const fieldEl = row.querySelector('[data-option-key="field"]');
+    const modeEl = row.querySelector('[data-option-key="mode"]');
+    const minEl = row.querySelector('[data-option-key="min"]');
+    const maxEl = row.querySelector('[data-option-key="max"]');
+    if (fieldEl) fieldEl.value = fields.includes(filter.field) ? filter.field : 'all';
+    if (modeEl) modeEl.value = filter.mode || 'range';
+    if (minEl) minEl.value = filter.min || '';
+    if (maxEl) maxEl.value = filter.max || '';
+  });
+
+  if (optionMatchAnyEl) optionMatchAnyEl.checked = Boolean(state.optionMatchAny);
+  if (optionAddEl) optionAddEl.disabled = state.optionFilters.length >= 5;
 }
 
 function parseNumberInput(value) {
@@ -217,16 +274,18 @@ function parseNumberInput(value) {
 }
 
 function normalizeOptionNumberCriteria() {
-  const mode = optionModeEl?.value || state.optionMode || 'range';
-  const min = parseNumberInput(optionMinEl?.value || state.optionMin);
-  const max = parseNumberInput(optionMaxEl?.value || state.optionMax);
-  return { mode, min, max };
+  return state.optionFilters.map((filter) => ({
+    field: String(filter.field || 'all'),
+    mode: filter.mode || 'range',
+    min: parseNumberInput(filter.min),
+    max: parseNumberInput(filter.max),
+  }));
 }
 
-function optionMatchesCriteria(option, field, criteria) {
-  if (field !== 'all' && getOptionFieldLabel(option) !== field) return false;
+function optionMatchesCriteria(option, filter) {
+  if (filter.field !== 'all' && getOptionFieldLabel(option) !== filter.field) return false;
 
-  const hasValueConstraint = criteria.min !== null || criteria.max !== null;
+  const hasValueConstraint = filter.min !== null || filter.max !== null;
   if (!hasValueConstraint) return true;
 
   const numbers = [
@@ -236,28 +295,26 @@ function optionMatchesCriteria(option, field, criteria) {
   ];
 
   if (!numbers.length) return false;
-  const { mode, min, max } = criteria;
 
-  if (mode === 'gte') {
-    return min === null ? true : numbers.some((num) => num >= min);
+  if (filter.mode === 'gte') {
+    return filter.min === null ? true : numbers.some((num) => num >= filter.min);
   }
 
-  if (mode === 'lte') {
-    return max === null ? true : numbers.some((num) => num <= max);
+  if (filter.mode === 'lte') {
+    return filter.max === null ? true : numbers.some((num) => num <= filter.max);
   }
 
-  const lower = min === null ? Number.NEGATIVE_INFINITY : min;
-  const upper = max === null ? Number.POSITIVE_INFINITY : max;
+  const lower = filter.min === null ? Number.NEGATIVE_INFINITY : filter.min;
+  const upper = filter.max === null ? Number.POSITIVE_INFINITY : filter.max;
   return numbers.some((num) => num >= lower && num <= upper);
 }
 
 function matchesOptionFilters(item) {
-  const field = state.optionField || 'all';
-  const criteria = normalizeOptionNumberCriteria();
-  const hasValueConstraint = criteria.min !== null || criteria.max !== null;
-  return field === 'all' && !hasValueConstraint
-    ? true
-    : (item.item_option || []).some((option) => optionMatchesCriteria(option, field, criteria));
+  const filters = normalizeOptionNumberCriteria().filter((filter) => filter.field !== 'all' || filter.min !== null || filter.max !== null);
+  if (!filters.length) return true;
+  const options = item.item_option || [];
+  const results = filters.map((filter) => options.some((option) => optionMatchesCriteria(option, filter)));
+  return state.optionMatchAny ? results.some(Boolean) : results.every(Boolean);
 }
 
 function formatOption(option) {
@@ -331,12 +388,17 @@ function loadSavedFilters() {
         keyword: String(entry.keyword || '').trim(),
         sort: entry.sort || 'registered',
         category: entry.category || 'all',
+        optionMatchAny: Boolean(entry.optionMatchAny),
+        optionFilters: Array.isArray(entry.optionFilters) && entry.optionFilters.length
+          ? entry.optionFilters.slice(0, 5).map(createOptionFilter)
+          : [{
+            field: entry.optionField || 'all',
+            mode: entry.optionMode || 'range',
+            min: String(entry.optionMin ?? ''),
+            max: String(entry.optionMax ?? ''),
+            }],
         priceMin: String(entry.priceMin || ''),
         priceMax: String(entry.priceMax || ''),
-        optionField: entry.optionField || 'all',
-        optionMode: entry.optionMode || 'range',
-        optionMin: String(entry.optionMin || ''),
-        optionMax: String(entry.optionMax || ''),
       }))
       .slice(0, 8);
   } catch {
@@ -379,26 +441,22 @@ function makeFilterSnapshot() {
     keyword: state.keyword.trim(),
     sort: sortSelectEl.value,
     category: state.categoryFilter,
+    optionMatchAny: Boolean(state.optionMatchAny),
+    optionFilters: state.optionFilters.map(createOptionFilter),
     priceMin: state.priceMin,
     priceMax: state.priceMax,
-    optionField: state.optionField,
-    optionMode: state.optionMode,
-    optionMin: state.optionMin,
-    optionMax: state.optionMax,
   };
 }
 
 function snapshotLabel(snapshot) {
   const parts = [];
   if (snapshot.keyword) parts.push(snapshot.keyword);
-  if (snapshot.optionField && snapshot.optionField !== 'all') parts.push(`옵션:${snapshot.optionField}`);
-  if (snapshot.optionMin || snapshot.optionMax || snapshot.optionMode === 'gte' || snapshot.optionMode === 'lte') {
-    const label = snapshot.optionMode === 'gte'
-      ? `이상 ${snapshot.optionMin || '0'}`
-      : snapshot.optionMode === 'lte'
-        ? `이하 ${snapshot.optionMax || '∞'}`
-        : `범위 ${snapshot.optionMin || '0'}~${snapshot.optionMax || '∞'}`;
-    parts.push(`옵션값:${label}`);
+  const optionFilters = Array.isArray(snapshot.optionFilters) ? snapshot.optionFilters : [];
+  const activeOptionFilters = optionFilters.filter((filter) => filter.field !== 'all' || filter.min || filter.max);
+  if (activeOptionFilters.length) {
+    const sample = activeOptionFilters.slice(0, 2).map(getOptionFilterLabel);
+    const joiner = snapshot.optionMatchAny ? ' OR ' : ' AND ';
+    parts.push(`옵션:${sample.join(joiner)}${activeOptionFilters.length > 2 ? ` 외 ${activeOptionFilters.length - 2}` : ''}`);
   }
   if (snapshot.category && snapshot.category !== 'all') parts.push(`분류:${snapshot.category}`);
   if (snapshot.priceMin || snapshot.priceMax) parts.push(`가격:${snapshot.priceMin || '0'}~${snapshot.priceMax || '∞'}`);
@@ -411,12 +469,12 @@ function addSavedFilter(snapshot = makeFilterSnapshot()) {
     keyword: String(snapshot.keyword || '').trim(),
     sort: snapshot.sort || 'registered',
     category: snapshot.category || 'all',
+    optionMatchAny: Boolean(snapshot.optionMatchAny),
+    optionFilters: Array.isArray(snapshot.optionFilters) && snapshot.optionFilters.length
+      ? snapshot.optionFilters.slice(0, 5).map(createOptionFilter)
+      : [createOptionFilter()],
     priceMin: String(snapshot.priceMin || ''),
     priceMax: String(snapshot.priceMax || ''),
-    optionField: snapshot.optionField || 'all',
-    optionMode: snapshot.optionMode || 'range',
-    optionMin: String(snapshot.optionMin || ''),
-    optionMax: String(snapshot.optionMax || ''),
   };
   const key = JSON.stringify(normalized);
   state.savedFilters = [
@@ -570,6 +628,11 @@ function parsePrice(value) {
   return Number.isFinite(parsed) ? String(Math.max(0, Math.floor(parsed))) : '';
 }
 
+function parseOptionValue(key, value) {
+  if (key === 'min' || key === 'max') return parsePrice(value);
+  return String(value || '');
+}
+
 function setPriceInputsFromState() {
   if (priceMinEl) priceMinEl.value = state.priceMin;
   if (priceMaxEl) priceMaxEl.value = state.priceMax;
@@ -594,17 +657,12 @@ function syncStateToUrl() {
   if (state.priceMax) params.set('maxPrice', state.priceMax);
   else params.delete('maxPrice');
 
-  if (state.optionField && state.optionField !== 'all') params.set('optionField', state.optionField);
-  else params.delete('optionField');
+  const activeOptionFilters = getActiveOptionFilters().slice(0, 5).map(createOptionFilter);
+  if (activeOptionFilters.length) params.set('options', JSON.stringify(activeOptionFilters));
+  else params.delete('options');
 
-  if (state.optionMode && state.optionMode !== 'range') params.set('optionMode', state.optionMode);
-  else params.delete('optionMode');
-
-  if (state.optionMin !== '') params.set('optionMin', state.optionMin);
-  else params.delete('optionMin');
-
-  if (state.optionMax !== '') params.set('optionMax', state.optionMax);
-  else params.delete('optionMax');
+  if (state.optionMatchAny) params.set('optionAny', '1');
+  else params.delete('optionAny');
 
   window.history.replaceState({}, '', url);
 }
@@ -616,23 +674,32 @@ function applyUrlState() {
   const category = params.get('category') || 'all';
   const minPrice = parsePrice(params.get('minPrice'));
   const maxPrice = parsePrice(params.get('maxPrice'));
-  const optionField = params.get('optionField') || 'all';
-  const optionMode = params.get('optionMode') || 'range';
-  const optionMin = parsePrice(params.get('optionMin'));
-  const optionMax = parsePrice(params.get('optionMax'));
+  const optionAny = params.get('optionAny') === '1';
+  const optionsParam = params.get('options');
+  let optionFilters = [];
+  if (optionsParam) {
+    try {
+      const parsed = JSON.parse(optionsParam);
+      if (Array.isArray(parsed)) optionFilters = parsed.slice(0, 5).map(createOptionFilter);
+    } catch {
+      optionFilters = [];
+    }
+  }
+  if (!optionFilters.length) {
+    const optionField = params.get('optionField') || 'all';
+    const optionMode = params.get('optionMode') || 'range';
+    const optionMin = parsePrice(params.get('optionMin'));
+    const optionMax = parsePrice(params.get('optionMax'));
+    optionFilters = [createOptionFilter({ field: optionField, mode: optionMode, min: optionMin, max: optionMax })];
+  }
 
   sortSelectEl.value = sort;
   state.categoryFilter = category;
   state.priceMin = minPrice;
   state.priceMax = maxPrice;
-  state.optionField = optionField;
-  state.optionMode = optionMode;
-  state.optionMin = optionMin;
-  state.optionMax = optionMax;
+  state.optionFilters = optionFilters.length ? optionFilters : [createOptionFilter()];
+  state.optionMatchAny = optionAny;
   setPriceInputsFromState();
-  if (optionModeEl) optionModeEl.value = optionMode;
-  if (optionMinEl) optionMinEl.value = optionMin;
-  if (optionMaxEl) optionMaxEl.value = optionMax;
 
   return keyword;
 }
@@ -679,7 +746,7 @@ function setEmpty(message) {
   resultsCardEl.classList.remove('qty-off');
   state.visibleItems = [];
   state.selectedIndex = 0;
-  renderOptionFieldList([]);
+  renderOptionFilterList([]);
   renderCategoryFilters([]);
   renderInspector(null);
   resultsCardEl.dataset.filtered = '0';
@@ -779,15 +846,15 @@ function renderResults() {
   const activeFilters = [
     state.categoryFilter !== 'all' ? '분류' : '',
     state.priceMin || state.priceMax ? '가격' : '',
-    state.optionField && state.optionField !== 'all' ? '옵션' : '',
-    state.optionMin !== '' || state.optionMax !== '' ? '옵션값' : '',
+    getActiveOptionFilters().length ? '옵션' : '',
+    state.optionMatchAny && getActiveOptionFilters().length > 1 ? 'OR' : '',
   ].filter(Boolean);
   resultCountEl.innerHTML = `${items.length}건${activeFilters.length ? ` · <strong>${escapeHtml(activeFilters.join('/'))}</strong>` : ''}`;
   resultsCardEl.dataset.filtered = String(items.length);
-  renderOptionFieldList(getItemsBeforeOptionFilter());
+  renderOptionFilterList(getItemsBeforeOptionFilter());
   renderCategoryFilters(visibleItems);
 
-  const optionFiltersActive = state.optionField !== 'all' || state.optionMin !== '' || state.optionMax !== '';
+  const optionFiltersActive = getActiveOptionFilters().length > 0;
   const itemsBeforeOptionFilter = getItemsBeforeOptionFilter();
 
   if (compactLayout) {
@@ -857,29 +924,17 @@ function resetFilters() {
   state.categoryFilter = 'all';
   state.priceMin = '';
   state.priceMax = '';
-  state.optionField = 'all';
-  state.optionMode = 'range';
-  state.optionMin = '';
-  state.optionMax = '';
+  state.optionFilters = [createOptionFilter()];
+  state.optionMatchAny = false;
   sortSelectEl.value = 'registered';
   setPriceInputsFromState();
-  if (optionFieldEl) optionFieldEl.value = 'all';
-  if (optionModeEl) optionModeEl.value = 'range';
-  if (optionMinEl) optionMinEl.value = '';
-  if (optionMaxEl) optionMaxEl.value = '';
   syncStateToUrl();
   if (state.items.length) renderResults();
 }
 
 function resetOptionFilters() {
-  state.optionField = 'all';
-  state.optionMode = 'range';
-  state.optionMin = '';
-  state.optionMax = '';
-  if (optionFieldEl) optionFieldEl.value = 'all';
-  if (optionModeEl) optionModeEl.value = 'range';
-  if (optionMinEl) optionMinEl.value = '';
-  if (optionMaxEl) optionMaxEl.value = '';
+  state.optionFilters = [createOptionFilter()];
+  state.optionMatchAny = false;
   syncStateToUrl();
   if (state.items.length) renderResults();
 }
@@ -1058,55 +1113,63 @@ priceMaxEl.addEventListener('input', () => {
   renderResults();
 });
 
-if (optionFieldEl) {
-  optionFieldEl.addEventListener('change', () => {
-    state.optionField = optionFieldEl.value || 'all';
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
+function commitOptionFilters() {
+  state.optionFilters = (state.optionFilters.length ? state.optionFilters : [createOptionFilter()]).slice(0, 5).map(createOptionFilter);
+  syncStateToUrl();
+  if (state.items.length) renderResults();
+}
+
+if (optionMatchAnyEl) {
+  optionMatchAnyEl.addEventListener('change', () => {
+    state.optionMatchAny = optionMatchAnyEl.checked;
+    commitOptionFilters();
   });
 }
 
-if (optionModeEl) {
-  optionModeEl.addEventListener('change', () => {
-    state.optionMode = optionModeEl.value || 'range';
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
+if (optionAddEl) {
+  optionAddEl.addEventListener('click', () => {
+    if (state.optionFilters.length >= 5) return;
+    state.optionFilters = [...state.optionFilters, createOptionFilter()];
+    commitOptionFilters();
   });
 }
 
-if (optionMinEl) {
-  optionMinEl.addEventListener('change', () => {
-    state.optionMin = parsePrice(optionMinEl.value);
-    optionMinEl.value = state.optionMin;
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
+if (optionFilterListEl) {
+  optionFilterListEl.addEventListener('input', (event) => {
+    const row = event.target.closest('.option-filter-row');
+    if (!row) return;
+    const index = Number(row.dataset.optionIndex);
+    const key = event.target.dataset.optionKey;
+    if (!Number.isInteger(index) || !key) return;
+    const current = state.optionFilters[index] || createOptionFilter();
+    state.optionFilters[index] = createOptionFilter({ ...current, [key]: parseOptionValue(key, event.target.value) });
+    commitOptionFilters();
   });
 
-  optionMinEl.addEventListener('input', () => {
-    state.optionMin = parsePrice(optionMinEl.value);
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
-  });
-}
-
-if (optionMaxEl) {
-  optionMaxEl.addEventListener('change', () => {
-    state.optionMax = parsePrice(optionMaxEl.value);
-    optionMaxEl.value = state.optionMax;
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
+  optionFilterListEl.addEventListener('change', (event) => {
+    const row = event.target.closest('.option-filter-row');
+    if (!row) return;
+    const index = Number(row.dataset.optionIndex);
+    const key = event.target.dataset.optionKey;
+    if (!Number.isInteger(index) || !key) return;
+    const current = state.optionFilters[index] || createOptionFilter();
+    state.optionFilters[index] = createOptionFilter({ ...current, [key]: parseOptionValue(key, event.target.value) });
+    commitOptionFilters();
   });
 
-  optionMaxEl.addEventListener('input', () => {
-    state.optionMax = parsePrice(optionMaxEl.value);
-    syncStateToUrl();
-    if (!state.items.length) return;
-    renderResults();
+  optionFilterListEl.addEventListener('click', (event) => {
+    const removeButton = event.target.closest('.option-remove');
+    if (!removeButton) return;
+    const row = removeButton.closest('.option-filter-row');
+    if (!row) return;
+    const index = Number(row.dataset.optionIndex);
+    if (!Number.isInteger(index)) return;
+    if (state.optionFilters.length <= 1) {
+      state.optionFilters = [createOptionFilter()];
+    } else {
+      state.optionFilters = state.optionFilters.filter((_, i) => i !== index);
+    }
+    commitOptionFilters();
   });
 }
 
@@ -1183,15 +1246,11 @@ if (savedFilterListEl) {
       state.categoryFilter = snapshot.category || 'all';
       state.priceMin = snapshot.priceMin || '';
       state.priceMax = snapshot.priceMax || '';
-      state.optionField = snapshot.optionField || 'all';
-      state.optionMode = snapshot.optionMode || 'range';
-      state.optionMin = snapshot.optionMin || '';
-      state.optionMax = snapshot.optionMax || '';
+      state.optionMatchAny = Boolean(snapshot.optionMatchAny);
+      state.optionFilters = Array.isArray(snapshot.optionFilters) && snapshot.optionFilters.length
+        ? snapshot.optionFilters.slice(0, 5).map(createOptionFilter)
+        : [createOptionFilter()];
       setPriceInputsFromState();
-      if (optionFieldEl) optionFieldEl.value = state.optionField;
-      if (optionModeEl) optionModeEl.value = state.optionMode;
-      if (optionMinEl) optionMinEl.value = state.optionMin;
-      if (optionMaxEl) optionMaxEl.value = state.optionMax;
       if (snapshot.keyword) runSearch(snapshot.keyword, true);
       else if (state.items.length) renderResults();
     }

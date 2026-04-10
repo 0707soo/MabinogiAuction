@@ -28,21 +28,15 @@
             <summary>옵션</summary>
             <div class="advanced-filters-body">
               <label class="search-label" for="option-field">옵션 항목</label>
-              <select id="option-field" name="option-field" disabled>
-                <option value="all">검색 후 선택</option>
-              </select>
-
-              <label class="search-label" for="option-mode">옵션값 조건</label>
-              <select id="option-mode" name="option-mode">
-                <option value="range">범위</option>
-                <option value="gte">이상</option>
-                <option value="lte">이하</option>
-              </select>
-
-              <div class="option-range-grid">
-                <input id="option-min" name="option-min" type="number" inputmode="numeric" placeholder="최소값" />
-                <input id="option-max" name="option-max" type="number" inputmode="numeric" placeholder="최대값" />
+              <div class="option-filter-head">
+                <label class="checkbox-row">
+                  <input id="option-match-any" type="checkbox" />
+                  <span>하나라도 만족 (OR)</span>
+                </label>
+                <button id="option-add" class="filter-reset" type="button">조건 추가</button>
               </div>
+
+              <div id="option-filter-list" class="option-filter-list"></div>
 
               <div class="option-actions">
                 <button id="option-reset" class="filter-reset option-reset" type="button">옵션 초기화</button>
