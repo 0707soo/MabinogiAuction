@@ -5,6 +5,7 @@ const form = document.getElementById('search-form');
 const keywordInput = document.getElementById('keyword');
 const statusEl = document.getElementById('status');
 const resultsCardEl = document.querySelector('.results-card');
+const advancedFiltersEl = document.querySelector('.advanced-filters');
 const resultsEl = document.getElementById('results');
 const resultCountEl = document.getElementById('result-count');
 const sortSelectEl = document.getElementById('sort-select');
@@ -372,6 +373,10 @@ function hasDetail(item) {
   return colorOptions.length > 0 || otherOptions.length > 0;
 }
 
+function hasAnyItemOptions(items = []) {
+  return items.some(hasDetail);
+}
+
 function loadFavorites() {
   try {
     const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
@@ -737,7 +742,8 @@ function getVisibleItems() {
     if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
     return true;
   });
-  const filteredByOption = filteredByPrice.filter((item) => matchesOptionFilters(item));
+  const optionFilteringEnabled = hasAnyItemOptions(state.items);
+  const filteredByOption = optionFilteringEnabled ? filteredByPrice.filter((item) => matchesOptionFilters(item)) : filteredByPrice;
   return state.categoryFilter === 'all'
     ? filteredByOption
     : filteredByOption.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
@@ -751,6 +757,9 @@ function getItemsBeforeOptionFilter() {
     if (state.priceMax !== '' && price > Number(state.priceMax)) return false;
     return true;
   });
+  if (!hasAnyItemOptions(state.items)) return state.categoryFilter === 'all'
+    ? filteredByPrice
+    : filteredByPrice.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
   return state.categoryFilter === 'all'
     ? filteredByPrice
     : filteredByPrice.filter((item) => (item.auction_item_category || '분류 없음') === state.categoryFilter);
@@ -862,6 +871,7 @@ function renderInspector(item) {
 function renderResults({ refreshOptionFilters = true } = {}) {
   const visibleItems = getVisibleItems();
   const items = getSortedItems(visibleItems);
+  const optionFilteringEnabled = hasAnyItemOptions(state.items);
   state.visibleItems = items;
   if (state.selectedIndex >= items.length) state.selectedIndex = 0;
   const selectedItem = items[state.selectedIndex] || null;
@@ -876,12 +886,16 @@ function renderResults({ refreshOptionFilters = true } = {}) {
   ].filter(Boolean);
   resultCountEl.innerHTML = `${items.length}건${activeFilters.length ? ` · <strong>${escapeHtml(activeFilters.join('/'))}</strong>` : ''}`;
   resultsCardEl.dataset.filtered = String(items.length);
-  if (refreshOptionFilters) {
+  if (advancedFiltersEl) advancedFiltersEl.hidden = !optionFilteringEnabled;
+  if (optionFilteringEnabled && refreshOptionFilters) {
     renderOptionFilterList(getItemsBeforeOptionFilter());
+  } else if (!optionFilteringEnabled && optionFilterListEl) {
+    optionFilterListEl.innerHTML = '';
+    if (optionSummaryEl) optionSummaryEl.textContent = '옵션 없음';
   }
   renderCategoryFilters(visibleItems);
 
-  const optionFiltersActive = getActiveOptionFilters().length > 0;
+  const optionFiltersActive = optionFilteringEnabled && getActiveOptionFilters().length > 0;
   const itemsBeforeOptionFilter = getItemsBeforeOptionFilter();
 
   if (compactLayout) {
